@@ -1,12 +1,12 @@
 var klatschclient = {
-    refreshInterval: 5000
+    refreshInterval: 30000
 };
 
-function parseCommando(msgline, user) {
+function parseCommand(msgline, user, password) {
     var msg = /([^\s]+)\s+([^\s]+)\s+(.*)/.exec(msgline);
     if (msg && msg[1] == "m") {
-	klatschbase.postMessage({user: user, client: msg[2],
-		    msgtext: msg[3]});
+	klatschbase.postMessage([user, password],
+				{client: msg[2], msgtext: msg[3]});
     } else {
 	alert("unknown command: " + msg);
     }
@@ -19,20 +19,22 @@ function addMessage(id, msg) {
 		       + msg.text + "</span>");
 }
 
-function startMessagePolling(loginId, startKey) {
+function startMessagePolling(loginId, password, startKey) {
     klatschclient.refresh = function() {
 	klatschbase
-	.getMessages("client", loginId, startKey, function(msgs) {
-		if (msgs != null) {
-		    $.each(msgs, addMessage);
-		    if (msgs.length > 0) {
-			startKey = msgs[msgs.length - 1].id + 1;
-			$("p.chat").each(function(id, p) {
-				p.scrollTop = p.scrollHeight;
-			    });
-		    }
-		}
-	    })};
+	.getMessages([loginId, password],
+		     "client", loginId, startKey,
+		     function(msgs) {
+			 if (msgs != null) {
+			     $.each(msgs, addMessage);
+			     if (msgs.length > 0) {
+				 startKey = msgs[msgs.length - 1].id + 1;
+				 $("p.chat").each(function(id, p) {
+					 p.scrollTop = p.scrollHeight;
+				     });
+			     }
+			 }
+		     })};
     klatschclient.refreshId =
 	setInterval('klatschclient.refresh()', klatschclient.refreshInterval);
 }
@@ -52,6 +54,7 @@ function displayRoomList() {
 
 $(document).ready(function() {
 	var loginId;
+        var password;
 	var onLogin = function(data) {
 	    if (data) {
 		if (data.error) {
@@ -59,7 +62,7 @@ $(document).ready(function() {
 		} else {
 		    loginId = data.id;
 		    alert("success: " + loginId + " " + data.startkey);
-		    startMessagePolling(loginId, data.startkey);
+		    startMessagePolling(loginId, password, data.startkey);
 		    $(".login").hide();
 		    $(".inchat").show();
 		}
@@ -73,11 +76,17 @@ $(document).ready(function() {
 	$(".inchat").hide();
 	$("#loginsubmit").click(function() {
 		var loginName = document.getElementById('login').value;
-		klatschbase.register(loginName, null, onLogin);
+		password = document.getElementById('password').value;
+		var userDesc = {login: loginName, password: password}
+		if (document.getElementById('registerFlag').checked) {
+		    klatschbase.register(loginName, userDesc, onLogin);
+		} else {
+		    klatschbase.login([loginName, password], onLogin);
+		}
 	    });
 	$("#msgsubmit").click(function() {
-		parseCommando(document.getElementById('msgline').value,
-			      loginId);
+		parseCommand(document.getElementById('msgline').value,
+			     loginId, password);
 	    });
 	$("a.refreshRooms").click(displayRoomList);
     });

@@ -73,7 +73,7 @@
   
 
 (defclass chat-client (chat-object)
-  ()
+  ((password :accessor client-password :initarg :password))
   (:documentation "Representation of the chat client"))
 
 (defclass chat-room (chat-object)
@@ -173,23 +173,25 @@
       (error "room already exists")))
 
 (defmethod remove-room ((server chat-server) name)
-  (sb-thread:with-mutex ((rooms-mtx (server client)))
+  (sb-thread:with-mutex ((rooms-mtx server))
     (let* ((rooms (rooms server))
 	   (room  (gethash name rooms)))
       (if (null room)
 	  (error "room not found")
 	  (progn
-	    (remhash name (rooms (server client)))
+	    (remhash name (rooms server))
 	    `((id . ,name)
 	      (removed . t)))))))
 
 (defmethod chat-object-dto ((obj chat-room))
   `((id . ,(name obj))
-    (category . room)))
+    (category . room)
+    (startkey . ,(storeseq (chatmsgs obj)))))
 
 (defmethod chat-object-dto ((obj chat-client))
   `((id . ,(name obj))
-    (category . client)))
+    (category . client)
+    (startkey . ,(storeseq (chatmsgs obj)))))
 
 
 (defmethod list-rooms ((server chat-server))

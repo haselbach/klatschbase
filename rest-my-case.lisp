@@ -21,7 +21,7 @@
 	       ((eq :body type)
 		'(get-body))
 	       ((eq :user type)
-		'(authorization))
+		'(multiple-value-list (authorization)))
 	       ((eq :url-arg type)
 		`(elt ,command ,(car rest))))))
 	 args)))
@@ -93,7 +93,7 @@
 	  (cons (cons i e) (fill-holes l e (1+ i)))
 	  (cons (car l) (fill-holes (cdr l) e (1+ i))))))
 
-(defun create-dyna-url-fun (url-prefix name args jargs)
+(defun create-dyna-url (url-prefix name args jargs)
   (let ((url-args (loop
 		     :for arg :in args
 		     :for jarg :in jargs
@@ -107,28 +107,42 @@
 		      (fill-holes (sort url-args #'< :key #'car)
 				  "x"))))))
 
-(defun create-dyna-body-fun (args jargs)
+(defun create-dyna-body (args jargs)
   (let ((i (position :body args :key #'second)))
     (if (null i) nil (elt jargs i))))
+
+(defun create-dyna-authorization (remote-object args jargs)
+  (let ((i (position :user args :key #'second)))
+    (if (null i)
+	nil
+	(let ((jarg (elt jargs i)))
+	  `('before-send
+	    (lambda (req)
+	      (req.set-request-header
+	       "Authorization"
+	       ((slot-value ,remote-object '_make-base-auth) (aref ,jarg 0)
+		(aref ,jarg 1)))))))))
 
 (defun generate-client-args (args)
   (loop
      :for arg :in args
-     :unless (eq :user (second arg)) :collect (first arg)))
+     :collect (first arg)))
 
-(defun generate-client-fun (url-prefix fun name type args)
-  (let* ((jargs         (generate-client-args args))
-	 (dyna-url-fun  (create-dyna-url-fun url-prefix name args jargs))
-	 (dyna-body-fun (create-dyna-body-fun args jargs)))
+(defun generate-client-fun (url-prefix remote-object fun name type args)
+  (let* ((jargs     (generate-client-args args))
+	 (dyna-url  (create-dyna-url url-prefix name args jargs))
+	 (dyna-body (create-dyna-body args jargs)))
     `(,fun (lambda ,(append jargs '(success))
-	     (let ((url  ,dyna-url-fun)
-		   (data ,dyna-body-fun))
-	       (j-query.ajax (create 'url url
-				     'type ,(symbol-name type)
-				     'data-type "json"
-				     'data (*J-S-O-N.stringify data)
-				     ;;'data data
-				     'success success)))))))
+	     (j-query.ajax (create 'url ,dyna-url
+				   'type ,(symbol-name type)
+				   'data-type "json"
+				   ,@(if (null dyna-body)
+					 nil
+					 `('data (*J-S-O-N.stringify
+						  ,dyna-body)))
+				   ,@(create-dyna-authorization remote-object
+								args jargs)
+				   'success success))))))
 
 (defun client-remote-api (url-prefix remote-object &rest specification)
   (destructuring-bind (&optional &key export)
@@ -137,7 +151,12 @@
 	  specification)
     (parenscript:ps*
      `(setf ,remote-object
-	    (create ,@(mapcan (lambda (x) (apply #'generate-client-fun
-						 (cons url-prefix x)))
+	    (create _make-base-auth
+		    (lambda (user password)
+		      (return (+ "Basic "
+				 (*base64.encode (+ user ":" password)))))
+		    ,@(mapcan (lambda (x)
+				(apply #'generate-client-fun
+				       `(,url-prefix ,remote-object ,@x)))
 			      export))))))
 

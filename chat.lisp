@@ -21,22 +21,26 @@
     ((register
       "client" :put
       ((user :url-arg 1) (body :body)))
+     (login
+      "login" :get
+      ((auth :user)))
      (post-message
       "post-message" :post
-      ((body :body)))
+      ((user :user) (body :body)))
      (get-message
       "get-message" :get
-      ((category :url-arg 1) (id :url-arg 2) (key :url-arg 3)))
+      ((auth :user) (category :url-arg 1) (id :url-arg 2) (key :url-arg 3)))
      (get-messages
       "get-messages" :get
-      ((category :url-arg 1) (id :url-arg 2) (start-key :url-arg 3)))
+      ((auth :user)
+       (category :url-arg 1) (id :url-arg 2) (start-key :url-arg 3)))
      (room-list
       "list-rooms" :get
       ())
-     (create-room
+     (make-room
       "room" :put
       ((name :url-arg 1)))
-     (remove-room
+     (delete-room
       "room" :delete
       ((name :url-arg 1)))))
 
@@ -46,19 +50,43 @@
    'klatschbase
    'chat-api))
 
+(defun check-access-right (operation auth)
+  (when (null auth)
+    (error "authorization required"))
+  (let ((user (get-client-by-id *chat-server* (first auth))))
+    (when (or (null user) (not (string= (second auth) (client-password user))))
+      (error "authentication error ~A" auth))
+    (let ((op* (car operation)))
+      (cond
+	((eq 'post-message op*)
+	 t)
+	((eq 'login op*)
+	 t)
+	((eq 'get-message op*)
+	 (destructuring-bind (category user) (cdr operation)
+	   (if (string= category "client")
+	       (string= user (first auth))
+	       t)))
+	(t (error "operation denied"))))))
+
 (defparameter *chat-dispatcher*
   (labels
       ((register (user body)
-	 (let ((client (make-instance 'chat-client
-				      :name user
-				      :server *chat-server*)))
+	 (let* ((password (cdr (assoc :password body)))
+		(client   (make-instance 'chat-client
+					 :name user
+					 :password password
+					 :server *chat-server*)))
 	   (register-client *chat-server* client)))
-       (post-message (message)
-	 (let* ((username   (cdr (assoc :user    message)))
-		(clientname (cdr (assoc :client  message)))
+       (login (auth)
+	 (check-access-right '(login) auth)
+	 (chat-object-dto (get-client-by-id *chat-server* (first auth))))
+       (post-message (auth message)
+	 (check-access-right '(post-message) auth)
+	 (let* ((clientname (cdr (assoc :client  message)))
 		(roomname   (cdr (assoc :room    message)))
 		(msgtext    (cdr (assoc :msgtext message)))
-		(user       (get-client-by-id *chat-server* username)))
+		(user       (get-client-by-id *chat-server* (elt auth 0))))
 	   (cond ((not (null clientname))
 		  (let ((client (get-client-by-id *chat-server* clientname)))
 		    (not (null (client-message user client msgtext)))))
@@ -66,11 +94,13 @@
 		  (let ((room (get-room-by-id *chat-server* roomname)))
 		    (not (null (client-message user room msgtext)))))
 		 (t (error "neither client nor room defined")))))
-       (get-message (category user key)
+       (get-message (auth category user key)
+	 (check-access-right `(get-message ,category ,user) auth)
 	 (let ((client    (get-client-by-id *chat-server* user))
 	       (key*      (parse-integer key)))
 	   (chat-message-dto (get-chat-message client key*))))
-       (get-messages (category user startkey)
+       (get-messages (auth category user startkey)
+	 (check-access-right `(get-message ,category ,user) auth)
 	 (let ((client    (get-client-by-id *chat-server* user))
 	       (key*      (parse-integer startkey)))
 	   (mapcar #'chat-message-dto
@@ -90,7 +120,7 @@
 (pop *dispatch-table*)
 
 (setf *catch-errors-p* nil)
-(setf rest-my-case:*transform-errors-p* nil)
+(setf rest-my-case:*transform-errors-p* t)
 
 (defparameter *hunchentoot-server* (start-server :port 4242))
 
