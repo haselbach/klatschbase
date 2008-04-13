@@ -1,0 +1,83 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <script type="text/javascript" src="jquery.js"></script>
+    <script type="text/javascript" src="json2.js"></script>
+    <script type="text/javascript" src="klatschbase.js"></script>
+    <script type="text/javascript" src="client.js"></script>
+    <style type="text/css">
+      p.chat {
+        width: 80%;
+        height: 400px;
+        background-color: green;
+        overflow: auto;
+      }
+      p.chat span.entry {
+        border-style: dashed;
+        border-width: 1px;
+        border-color: black;
+        display: block;
+        margin: 2px;
+      }
+      div.rooms {
+        border-style: solid;
+        border-width: 1px;
+        border-color: black;
+        float: right;
+        margin: 2px;
+        width: 200px;
+        height: 200px;
+      }
+    </style>
+    <title>Klatschbase</title>
+  </head>
+  <body>
+    <h1>Klatschbase</h1>
+    <div class="login">
+      <form action="#">
+	<table>
+	  <tr>
+            <td>Login:</td>
+	    <td><input type="text" id="login"/></td>
+	  </tr>
+	  <tr>
+	    <td>Password:</td>
+            <td><input type="text" id="password"/></td>
+	  </tr>
+	  <tr>
+	    <td></td>
+	    <td><a id="loginsubmit" href="#"/>OK</td>
+	  </tr>
+	</table>
+      </form>
+    </div>
+    <div class="rooms inchat">
+      <a href="#" class="refreshRooms">Refresh</a>
+      <span class="room">
+	The rooms
+      </span>
+      <div class="roomlist">
+	<span>
+	  N/A
+	</span>
+      </div>
+    </div>
+    <p class="chat inchat">
+      <span class="entry">
+        Welcome to Klatschbase
+      </span>
+    </p>
+    <form action="#" class="inchat">
+      <input type="text" id="msgline"/>
+      <a id="msgsubmit" href="#">OK</a>
+    </form>
+    <form action="#">
+      <input type="text" id="input"/>
+      <a id="jssubmit" href="#">OK</a>
+    </form>
+    <p>
+      <a href="#" class="refresh">Refresh</a>
+    </p>
+  </body>
+</html>
