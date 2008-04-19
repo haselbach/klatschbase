@@ -1,58 +1,116 @@
 var klatschclient = {
-    refreshInterval: 30000
+    refreshInterval: 20000,
+    subscribedRooms: {},
+    getSubscribedRooms: function() {
+	var rooms = [];
+	$.each(this.subscribedRooms, function(i,room) { rooms.push(room); });
+	return rooms;
+    },
+    toggleSubscription: function(name) {
+	var self = this;
+	if (self.subscribedRooms[name] != undefined) {
+	    self.subscribedRooms[name] = undefined;
+	    self.displayRoomList();
+	} else {
+	    klatschbase.roomInfo(self.auth, name, function(data) {
+		    if (data != null && !data.error) {
+			alert(JSON.stringify(data));
+			self.subscribedRooms[name] = data;
+			self.displayRoomList();
+		    }
+		});
+	}
+    },
+    isSubscribed: function(name) {
+	return this.subscribedRooms[name] != undefined;
+    },
+    parseCommand: function(msgline, user, password) {
+	var msg = /([^\s]+)\s+([^\s]+)\s+(.*)/.exec(msgline);
+	if (msg && msg[1] == "m") {
+	    klatschbase.postMessage([user, password],
+				    {client: msg[2], msgtext: msg[3]});
+	} else if (msg && msg[1] == "r") {
+	    klatschbase.postMessage([user, password],
+                                    {room: msg[2],msgtext: msg[3]});
+	} else {
+	    alert("unknown command: " + msg);
+	}
+    },
+    addMessage: function(id, msg) {
+	$("p.chat").append("<span class='entry'><span class='sender'>"
+			   + msg.sender
+			   + "</span> "
+			   + msg.text + "</span>");
+    },
+    startMessagePolling: function(loginId, password, startKey) {
+	var self = this;
+	var msgListFun = function(msgsList) {
+	    if (msgsList != null) {
+		if (msgsList.error) {
+		    return;
+		}
+		$.each(msgsList, function(key, msgs) {
+			if (msgs != null && msgs.messages != null) {
+			    var mlist = msgs.messages;
+			    $.each(mlist, self.addMessage);
+			    startKey = mlist[mlist.length - 1].id + 1;
+			    $("p.chat").each(function(id, p) {
+				    p.scrollTop = p.scrollHeight;
+				});
+			}
+		    });
+	    }
+	};
+	this.refresh = function() {
+	    klatschbase.getMessagesList([loginId, password],
+					[{category: "client",
+					  name: loginId,
+					  startkey: startKey}]
+					.concat(self.getSubscribedRooms()),
+					msgListFun);
+	}
+	this.refreshId =
+	setInterval('klatschclient.refresh()', klatschclient.refreshInterval);
+    },
+    subscribeLink: function(roomId) {
+	var self=klatschclient;
+	return $(document.createElement("a")).attr("href","#")
+	.click(function() { self.toggleSubscription(roomId); })
+	.text(self.isSubscribed(roomId) ? "X": "O");
+    },
+    displayRoomList: function() {
+	var self = klatschclient;
+	klatschbase.roomList(function(rooms) {
+		if (rooms) {
+		    var roomsdom =
+			$(document.createElement("ul")).addClass("roomlist");
+		    for (var i=0; i<rooms.length; i++) {
+			var roomId = rooms[i].id;
+			roomsdom.append($(document.createElement("li"))
+					.append(self.subscribeLink(roomId))
+					.append(" " + roomId));
+		    }
+		    $("ul.roomlist").replaceWith(roomsdom);
+		}
+	    });
+    },
+    displayClientList: function() {
+	klatschbase.clientList(function(clients) {
+		if (clients && !clients.error) {
+		    var clientstr = "";
+		    for (var i=0; i<clients.length; i++) {
+			var clientId = clients[i].id;
+			clientstr += "<li>" + clientId + "</li>";
+		    }
+		    $("ul.clientlist").html(clientstr);
+		}
+	    });
+    }
 };
 
-function parseCommand(msgline, user, password) {
-    var msg = /([^\s]+)\s+([^\s]+)\s+(.*)/.exec(msgline);
-    if (msg && msg[1] == "m") {
-	klatschbase.postMessage([user, password],
-				{client: msg[2], msgtext: msg[3]});
-    } else {
-	alert("unknown command: " + msg);
-    }
-}
-
-function addMessage(id, msg) {
-    $("p.chat").append("<span class='entry'><span class='sender'>"
-		       + msg.sender
-		       + "</span> "
-		       + msg.text + "</span>");
-}
-
-function startMessagePolling(loginId, password, startKey) {
-    klatschclient.refresh = function() {
-	klatschbase
-	.getMessages([loginId, password],
-		     "client", loginId, startKey,
-		     function(msgs) {
-			 if (msgs != null) {
-			     $.each(msgs, addMessage);
-			     if (msgs.length > 0) {
-				 startKey = msgs[msgs.length - 1].id + 1;
-				 $("p.chat").each(function(id, p) {
-					 p.scrollTop = p.scrollHeight;
-				     });
-			     }
-			 }
-		     })};
-    klatschclient.refreshId =
-	setInterval('klatschclient.refresh()', klatschclient.refreshInterval);
-}
-
-function displayRoomList() {
-    klatschbase.roomList(function(rooms) {
-	    if (rooms) {
-		var roomstr = "<span>blub</span>";
-		for (var i=0; i<rooms.length; i++) {
-		    roomstr += "<span>" + rooms[i].id + "</span>";
-		}
-		$("div.roomlist").html(roomstr);
-		//alert(roomstr);
-	    }
-	});
-}
-
 $(document).ready(function() {
+	var kc = klatschclient;
+	var kb = klatschbase;
 	var loginId;
         var password;
 	var onLogin = function(data) {
@@ -61,8 +119,7 @@ $(document).ready(function() {
 		    alert("Error:" + data.description);
 		} else {
 		    loginId = data.id;
-		    alert("success: " + loginId + " " + data.startkey);
-		    startMessagePolling(loginId, password, data.startkey);
+		    kc.startMessagePolling(loginId, password, data.startkey);
 		    $(".login").hide();
 		    $(".inchat").show();
 		}
@@ -78,16 +135,18 @@ $(document).ready(function() {
 		var loginName = document.getElementById('login').value;
 		password = document.getElementById('password').value;
 		var userDesc = {login: loginName, password: password}
+		kc.auth = [loginName, password];
 		if (document.getElementById('registerFlag').checked) {
-		    klatschbase.register(loginName, userDesc, onLogin);
+		    kb.register(loginName, userDesc, onLogin);
 		} else {
-		    klatschbase.login([loginName, password], onLogin);
+		    kb.login([loginName, password], onLogin);
 		}
 	    });
 	$("#msgsubmit").click(function() {
-		parseCommand(document.getElementById('msgline').value,
-			     loginId, password);
+		kc.parseCommand(document.getElementById('msgline').value,
+				loginId, password);
 	    });
-	$("a.refreshRooms").click(displayRoomList);
+	$("a.refreshRooms").click(kc.displayRoomList);
+	$("a.refreshClients").click(kc.displayClientList);
     });
 

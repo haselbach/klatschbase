@@ -50,9 +50,12 @@
   (gethash key (chat-messages store)))
 
 (defmethod poll-msgs ((store simple-msg-store) startkey)
-  (loop
-     :for msg :being :the :hash-values :in (chat-messages store)
-     :if (>= (msgid msg) startkey) :collect msg))
+  (sort
+   (loop
+      :for msg :being :the :hash-values :in (chat-messages store)
+      :if (>= (msgid msg) startkey) :collect msg)
+   #'<
+   :key #'msgid))
 
 (defmethod clean-msg-store ((store simple-msg-store) &key (max-age-in-s 600))
   (let* ((msgs     (chat-messages store))
@@ -73,7 +76,10 @@
   
 
 (defclass chat-client (chat-object)
-  ((password :accessor client-password :initarg :password))
+  ((password   :accessor client-password
+	       :initarg :password)
+   (operations :accessor allowed-client-operations
+	       :initform ()))
   (:documentation "Representation of the chat client"))
 
 (defclass chat-room (chat-object)
@@ -119,6 +125,8 @@
 (defgeneric remove-room (chat-server t))
 
 (defgeneric list-rooms (chat-server))
+
+(defgeneric list-clients (chat-server))
 
 (defgeneric chat-object-dto (chat-object))
 
@@ -199,10 +207,15 @@
      :for r :being :the :hash-value :of (rooms server)
      :collect (chat-object-dto r)))
 
+(defmethod list-clients ((server chat-server))
+  (loop
+     :for r :being :the :hash-value :of (clients server)
+     :collect (chat-object-dto r)))
+
 (defmethod get-chat-message ((co chat-object) key)
   (get-msg (chatmsgs co) key))
 
-(defmethod poll-chat-messages ((co chat-client) startkey)
+(defmethod poll-chat-messages ((co chat-object) startkey)
   (poll-msgs (chatmsgs co) startkey))
 
 (defmethod chat-message-dto ((msg chat-message))
