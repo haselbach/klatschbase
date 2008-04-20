@@ -58,7 +58,7 @@
 
 (defparameter *client-api-string*
   (client-remote-api
-   "http://localhost/klatschbase/ops/"
+   "/klatschbase/ops/"
    'klatschbase
    'chat-api))
 
@@ -123,7 +123,7 @@
 			    ((string= "client" category)
 			     (get-client-by-id *chat-server* id))
 			    ((string= "room" category)
-			     (get-room-by-id *chate-server* id))
+			     (get-room-by-id *chat-server* id))
 			    (t
 			     (error "unknown category"))))
 	       (key*      (if (stringp startkey)

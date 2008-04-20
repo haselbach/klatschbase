@@ -37,7 +37,7 @@
 			:for msg :being :the :hash-values :in msgs
 			:if (>= max-ts (msgtimestamp msg))
 			:collect (msgid msg)))
-	   (id (incf (storeseq store))))
+	   (id (1- (incf (storeseq store)))))
       (loop :for id :in old-msgs :do (remhash id msgs))
       (setf (gethash id msgs)
 	    (make-instance 'chat-message
