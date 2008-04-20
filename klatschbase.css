@@ -1,0 +1,56 @@
+body {
+	background-color: #BBBBFF;
+}
+input[type=text] {
+	border: 1px solid black;
+}
+p.chat {
+	height: 400px;
+	overflow: auto;
+	margin-left: 15%;
+	border: 1px solid black;
+	background-color: #FAF5E0;
+}
+p.chat span.personalEntry,
+p.chat span.roomEntry {
+	border: 1px dashed black;
+	background-color: white;
+	display: block;
+	margin: 2px;
+	padding: 2px;
+}
+p.chat span.sender {
+	font-weight: bold;
+}
+p.chat span.room {
+	font-weight: bold;
+	color: blue;
+}
+div.menu {
+	width: 14%;
+	position: absolute;
+	top: 83px;
+}
+div.rooms, div.clients {
+	border: 1px solid black;
+	margin: 2px;
+	height: 250px;
+	background-color: #CCCCFF;
+}
+.console {
+	border: 1px solid black;
+	margin: 2px 2px 2px 15%;
+	padding: 4px;
+	background-color: #CCCCFF;
+}
+.console input[type=text] {
+	width: 80%;
+}
+.console span.recipient {
+	width: 10%;
+	float: left;
+	display: block;
+}
+.console span.recipient span.room {
+	color: blue;
+}
