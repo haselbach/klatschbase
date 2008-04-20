@@ -26,6 +26,14 @@ p.chat span.room {
 	font-weight: bold;
 	color: blue;
 }
+p.chat span.sender:before,
+p.chat span.room:before {
+	content: " (";
+}
+p.chat span.sender:after,
+p.chat span.room:after {
+	content: ") ";
+}
 div.menu {
 	width: 14%;
 	position: absolute;
