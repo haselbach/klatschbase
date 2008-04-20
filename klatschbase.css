@@ -1,7 +1,7 @@
 body {
 	background-color: #BBBBFF;
 }
-input[type=text] {
+input {
 	border: 1px solid black;
 }
 p.chat {

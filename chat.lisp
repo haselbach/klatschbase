@@ -8,8 +8,6 @@
 (asdf:oos 'asdf:load-op :cl-ppcre)
 (asdf:oos 'asdf:load-op :s-http-client)
 
-(defpackage :klatschbase
-  (:use :common-lisp :hunchentoot :rest-my-case))
 (in-package :klatschbase)
 
 
@@ -57,10 +55,14 @@
       ((auth :user) (name :url-arg 1)))))
 
 (defparameter *client-api-string*
-  (client-remote-api
-   "/klatschbase/ops/"
-   'klatschbase
-   'chat-api))
+  (client-remote-api *base-path* 'klatschbase 'chat-api))
+
+(push (create-prefix-dispatcher "/klatschbase/client.js"
+				(lambda ()
+				  (setf (content-type) "text/javascript")
+				  *client-api-string*))
+      *dispatch-table*)
+
 
 (defun check-access-right (operation auth)
   (when (null auth)
@@ -163,32 +165,7 @@
 
 (push *chat-dispatcher* *dispatch-table*)
 
-(push (create-prefix-dispatcher "/klatschbase/client.js"
-				(lambda ()
-				  (setf (content-type) "text/javascript")
-				  *client-api-string*))
-      *dispatch-table*)
-
-(pop *dispatch-table*)
-
-(setf *catch-errors-p* nil)
-(setf rest-my-case:*transform-errors-p* t)
-
 (defparameter *hunchentoot-server* (start-server :port 4242))
 
-(stop-server *hunchentoot-server*)
-
-(register-client *chat-server*
-		 (make-instance 'chat-client :name "fo"
-					     :server *chat-server*))
-
-(mapcar
- #'chat-message-dto
- (poll-chat-messages (get-client-by-id *chat-server* "foo") 0))
-
-(unregister-client (get-client-by-name *chat-server* "ajax") )
-
-(msg-to-client (get-client-by-name *chat-server* "foo") "mehr davon")
-
-(create-room *chat-server* "foo")
-(create-room *chat-server* "bar")
+;;;(setf rest-my-case:*transform-errors-p* t)
+;;;(setf hunchentoot:*catch-errors-p* t)

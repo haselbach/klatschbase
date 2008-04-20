@@ -1,12 +1,10 @@
-(defpackage :rest-my-case
-  (:use :common-lisp :hunchentoot :cl-ppcre :json)
-  (:export defspec remote-api client-remote-api *transform-errors-p*))
 (in-package :rest-my-case)
 
 (defparameter *transform-errors-p* t)
 
 (defmacro defspec (name &rest spec)
-  `(setf (get ',name 'specification) ',spec))
+  `(eval-when (:compile-toplevel :load-toplevel)
+     (setf (get ',name 'specification) ',spec)))
 
 (defun generate-api-fun-call (fun args command)
   (cons fun
@@ -46,6 +44,8 @@
   (let* ((len  (length sequence))
 	 (end* (if (< len end) len end)))
     (subseq sequence start end*)))
+
+(defparameter *log* ())
 
 (defun split-uri (uri prefix)
   (let* ((len        (length prefix))
