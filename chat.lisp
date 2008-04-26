@@ -159,23 +159,20 @@
 
 (defun start-service (&optional &key
 		      hunchentoot-server
-		      (base-path "/klatschbase/"))
-  (let* ((server          (if (null hunchentoot-server)
+		      chat-server
+		      (base-path "/klatschbase/")
+		      static-files-path)
+  (let* ((server         (if (null hunchentoot-server)
 			      (start-server :address "127.0.0.1" :port 4242)
 			      hunchentoot-server))
-	 (chat-server    (make-instance 'chat-server))
+	 (chat-server*   (if (null chat-server)
+			     (make-instance 'chat-server)
+			     chat-server))
 	 (dispatch-table (funcall *meta-dispatcher* server)))
+    (unless (null static-files-path)
+      (push (create-folder-dispatcher-and-handler base-path static-files-path)
+	    dispatch-table))
     (push (create-client-js-dispatcher base-path) dispatch-table)
-    (push (create-chat-dispatcher base-path chat-server) dispatch-table)
+    (push (create-chat-dispatcher base-path chat-server*) dispatch-table)
     (setf (server-dispatch-table server) dispatch-table)
     chat-server))
-
-		      
-;;(push *chat-dispatcher* *dispatch-table*)
-;;
-;;(defparameter *hunchentoot-server*
-;;  (start-server :address "127.0.0.1" :port 4242))
-;;(stop-server *hunchentoot-server*)
-;;;(setf rest-my-case:*transform-errors-p* t)
-;;;(setf hunchentoot:*catch-errors-p* t)
-
