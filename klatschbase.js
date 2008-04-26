@@ -1,5 +1,5 @@
 var klatschclient = {
-    refreshMessageInterval: 3000,
+    refreshMessageInterval: 5000,
     refreshListInterval: 60000,
     subscribedRooms: {},
     getSubscribedRooms: function() {
@@ -59,6 +59,7 @@ var klatschclient = {
 	var self = this;
 	this.startkey = startKey;
 	var msgListFun = function(msgsList) {
+	    var count = 0;
 	    if (msgsList != null) {
 		if (msgsList.error) {
 		    return;
@@ -74,12 +75,14 @@ var klatschclient = {
 				if (room) {
 				    room.startkey = nextStartkey;
 				    $.each(mlist, function(id, msg) {
+					    count++;
 					    self.addRoomMessage(roomId, msg);
 					});
 				}
 			    } else if (msgs.key.category == "client") {
 				self.startkey = nextStartkey;
 				$.each(mlist, function(id, msg) {
+					count++;
 					self.addPersonalMessage(msg);
 				    });
 			    }
@@ -89,6 +92,17 @@ var klatschclient = {
 			}
 		    });
 	    }
+	    if (count == 0) {
+		if (self.refreshMessageInterval < 60000) {
+		    self.refreshMessageInterval += 1000;
+		}
+	    } else if (count > 2) {
+		if (self.refreshMessageInterval > 1000) {
+		    self.refreshMessageInterval -= 1000;
+		}
+	    }
+	    self.refreshMessageId =
+	    setTimeout('klatschclient.refresh()', self.refreshMessageInterval);
 	};
 	this.refresh = function() {
 	    klatschbase.getMessagesList([loginId, password],
@@ -98,8 +112,7 @@ var klatschclient = {
 					.concat(self.getSubscribedRooms()),
 					msgListFun);
 	}
-	this.refreshMessageId =
-	setInterval('klatschclient.refresh()', self.refreshMessageInterval);
+	self.refresh();
 	this.refreshClientListId =
 	setInterval('klatschclient.displayClientList()',
 		    self.refreshListInterval);
