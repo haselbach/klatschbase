@@ -3,16 +3,7 @@
 ;;;
 ;;; This requires sbcl for threads and networking.
 
-(asdf:oos 'asdf:load-op :hunchentoot)
-(asdf:oos 'asdf:load-op :cl-json)
-(asdf:oos 'asdf:load-op :cl-ppcre)
-(asdf:oos 'asdf:load-op :s-http-client)
-
 (in-package :klatschbase)
-
-
-(defparameter *base-path* "/klatschbase/ops/")
-(defparameter *chat-server* (make-instance 'chat-server))
 
 (defspec chat-api
     :export
@@ -54,20 +45,20 @@
       "room" :delete
       ((auth :user) (name :url-arg 1)))))
 
-(defparameter *client-api-string*
-  (client-remote-api *base-path* 'klatschbase 'chat-api))
+(defun create-client-js-dispatcher (base-path)
+  (let ((client-api-string (client-remote-api (concatenate 'string
+							   base-path "ops/")
+					      'klatschbase 'chat-api)))
+    (create-prefix-dispatcher
+     (concatenate 'string base-path "client.js")
+     (lambda ()
+       (setf (content-type) "text/javascript")
+       client-api-string))))
 
-(push (create-prefix-dispatcher "/klatschbase/client.js"
-				(lambda ()
-				  (setf (content-type) "text/javascript")
-				  *client-api-string*))
-      *dispatch-table*)
-
-
-(defun check-access-right (operation auth)
+(defun check-server-access-right (chat-server operation auth)
   (when (null auth)
     (error "authorization required"))
-  (let ((user (get-client-by-id *chat-server* (first auth))))
+  (let ((user (get-client-by-id chat-server (first auth))))
     (when (or (null user) (not (string= (second auth) (client-password user))))
       (error "authentication error ~A" auth))
     (let ((op* (car operation)))
@@ -85,47 +76,50 @@
 	 t)
 	((or (eq 'client-info op*) (eq 'room-info op*))
 	 t)
-	((eq 'delete-room operation)
+	((eq 'delete-room op*)
 	 (not (null (find 'delete-room (allowed-client-operations user)))))
 	(t (error "operation denied: ~A" operation))))))
 
-(defparameter *chat-dispatcher*
+
+(defun create-chat-dispatcher (base-path chat-server)
   (labels
-      ((register (user body)
+      ((check-access-right (operation auth)
+	 (check-server-access-right chat-server operation auth))
+       (register (user body)
 	 (let* ((password (cdr (assoc :password body)))
 		(client   (make-instance 'chat-client
 					 :name user
 					 :password password
-					 :server *chat-server*)))
-	   (register-client *chat-server* client)))
+					 :server chat-server)))
+	   (register-client chat-server client)))
        (login (auth)
 	 (check-access-right '(login) auth)
-	 (chat-object-dto (get-client-by-id *chat-server* (first auth))))
+	 (chat-object-dto (get-client-by-id chat-server (first auth))))
        (post-message (auth message)
 	 (check-access-right '(post-message) auth)
 	 (let* ((clientname (cdr (assoc :client  message)))
 		(roomname   (cdr (assoc :room    message)))
 		(msgtext    (cdr (assoc :msgtext message)))
-		(user       (get-client-by-id *chat-server* (elt auth 0))))
+		(user       (get-client-by-id chat-server (elt auth 0))))
 	   (cond ((not (null clientname))
-		  (let ((client (get-client-by-id *chat-server* clientname)))
+		  (let ((client (get-client-by-id chat-server clientname)))
 		    (not (null (client-message user client msgtext)))))
 		 ((not (null roomname))
-		  (let ((room (get-room-by-id *chat-server* roomname)))
+		  (let ((room (get-room-by-id chat-server roomname)))
 		    (not (null (client-message user room msgtext)))))
 		 (t (error "neither client nor room defined")))))
        (get-message (auth category user key)
 	 (check-access-right `(get-message ,category ,user) auth)
-	 (let ((client    (get-client-by-id *chat-server* user))
+	 (let ((client    (get-client-by-id chat-server user))
 	       (key*      (parse-integer key)))
 	   (chat-message-dto (get-chat-message client key*))))
        (get-messages (auth category id startkey)
 	 (check-access-right `(get-message ,category ,id) auth)
 	 (let ((chat-obj  (cond
 			    ((string= "client" category)
-			     (get-client-by-id *chat-server* id))
+			     (get-client-by-id chat-server id))
 			    ((string= "room" category)
-			     (get-room-by-id *chat-server* id))
+			     (get-room-by-id chat-server id))
 			    (t
 			     (error "unknown category"))))
 	       (key*      (if (stringp startkey)
@@ -147,25 +141,41 @@
 		 body))
        (client-info (auth id)
 	 (check-access-right '(client-info) auth)
-	 (chat-object-dto (get-client-by-id *chat-server* id)))
+	 (chat-object-dto (get-client-by-id chat-server id)))
        (room-info (auth id)
 	 (check-access-right '(room-info) auth)
-	 (chat-object-dto (get-room-by-id *chat-server* id)))
+	 (chat-object-dto (get-room-by-id chat-server id)))
        (room-list ()
-	 (list-rooms *chat-server*))
+	 (list-rooms chat-server))
        (client-list ()
-	 (list-clients *chat-server*))
+	 (list-clients chat-server))
        (make-room (auth name)
 	 (check-access-right `(make-room) auth)
-	 (create-room *chat-server* name))
+	 (create-room chat-server name))
        (delete-room (auth name)
 	 (check-access-right `(delete-room) auth)
-	 (remove-room *chat-server* name)))
-    (remote-api *base-path* chat-api)))
+	 (remove-room chat-server name)))
+    (remote-api (concatenate 'string base-path "ops/") chat-api)))
 
-(push *chat-dispatcher* *dispatch-table*)
+(defun start-service (&optional &key
+		      hunchentoot-server
+		      (base-path "/klatschbase/"))
+  (let* ((server          (if (null hunchentoot-server)
+			      (start-server :address "127.0.0.1" :port 4242)
+			      hunchentoot-server))
+	 (chat-server    (make-instance 'chat-server))
+	 (dispatch-table (funcall *meta-dispatcher* server)))
+    (push (create-client-js-dispatcher base-path) dispatch-table)
+    (push (create-chat-dispatcher base-path chat-server) dispatch-table)
+    (setf (server-dispatch-table server) dispatch-table)
+    chat-server))
 
-(defparameter *hunchentoot-server* (start-server :port 4242))
-
+		      
+;;(push *chat-dispatcher* *dispatch-table*)
+;;
+;;(defparameter *hunchentoot-server*
+;;  (start-server :address "127.0.0.1" :port 4242))
+;;(stop-server *hunchentoot-server*)
 ;;;(setf rest-my-case:*transform-errors-p* t)
 ;;;(setf hunchentoot:*catch-errors-p* t)
+

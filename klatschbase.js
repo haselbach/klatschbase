@@ -215,6 +215,7 @@ $(document).ready(function() {
 		if (e.which == 13) {
 		    kc.sendMessage(this.value);
 		    this.value = "";
+
 		    return false;
 		}
 	    });

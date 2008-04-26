@@ -76,15 +76,17 @@
       (if (and (= 1 (length specification)) (symbolp (car specification)))
 	  (get (car specification) 'specification)
 	  specification)
-    (let ((command (gensym)))
-      `(create-prefix-dispatcher
-	,url-prefix
-	(lambda ()
-	  (let ((,command (get-command-from-request ,url-prefix)))
-	    (cond ,@(mapcar (lambda (x) (apply #'generate-api-export-exp
-					       (cons command x)))
-			    export)
-		  (t (handle-malformed-request)))))))))
+    (let ((command        (gensym))
+	  (url-prefix-var (gensym)))
+      `(let ((,url-prefix-var ,url-prefix))
+	 (create-prefix-dispatcher
+	  ,url-prefix-var
+	  (lambda ()
+	    (let ((,command (get-command-from-request ,url-prefix-var)))
+	      (cond ,@(mapcar (lambda (x) (apply #'generate-api-export-exp
+						 (cons command x)))
+			      export)
+		    (t (handle-malformed-request))))))))))
 
 (defun fill-holes (l e &optional (i 1))
   (if (null l)
