@@ -56,11 +56,11 @@
        client-api-string))))
 
 (defun check-server-access-right (chat-server operation auth)
-  (when (null auth)
+  (when (not (listp auth))
     (error "authorization required"))
-  (let ((user (get-client-by-id chat-server (first auth))))
-    (when (or (null user) (not (string= (second auth) (client-password user))))
-      (error "authentication error ~A" auth))
+  (let ((user (authenticate-user chat-server (first auth) (second auth))))
+    (when (null user)
+      (error "authentication error ~A" (first auth)))
     (let ((op* (car operation)))
       (cond
 	((eq 'post-message op*)
@@ -87,9 +87,11 @@
 	 (check-server-access-right chat-server operation auth))
        (register (user body)
 	 (let* ((password (cdr (assoc :password body)))
+		(pass     (sha256 (concatenate 'string password user)))
 		(client   (make-instance 'chat-client
 					 :name user
-					 :password password
+					 :password pass
+					 :password-type (cons :sha256 user)
 					 :server chat-server)))
 	   (register-client chat-server client)))
        (login (auth)

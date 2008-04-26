@@ -78,6 +78,8 @@
 (defclass chat-client (chat-object)
   ((password   :accessor client-password
 	       :initarg :password)
+   (password-type :accessor client-password-type
+		  :initarg :password-type)
    (operations :accessor allowed-client-operations
 	       :initform ()))
   (:documentation "Representation of the chat client"))
@@ -129,6 +131,8 @@
 (defgeneric list-clients (chat-server))
 
 (defgeneric chat-object-dto (chat-object))
+
+(defgeneric authenticate-client (chat-server t t))
 
 
 (defparameter *allowed-chars*
@@ -229,3 +233,26 @@
     (text . ,text)
     (sender . ,name))))
 
+(defun sha256 (str)
+  (ironclad:digest-sequence :sha256 (ironclad:ascii-string-to-byte-array str)))
+
+(defmethod authenticate-user ((server chat-server) name password)
+  (let ((client (get-client-by-id server name)))
+    (if (null client)
+	nil
+	(let ((cpass (client-password client))
+	      (ptype (if (slot-exists-p client 'password-type)
+			 (client-password-type client)
+			 nil)))
+	  (cond
+	    ((null ptype)
+	     (if (string= password cpass)
+		 client
+		 nil))
+	    ((and (consp ptype) (eq :sha256 (car ptype)))
+	     (if (equalp (sha256 (concatenate 'string password (cdr ptype)))
+			 cpass)
+		 client
+		 nil))
+	    (t
+	     (error "unknown password type")))))))
