@@ -1,6 +1,6 @@
 var klatschclient = {
     refreshMessageInterval: 3000,
-    refreshListInterval: 20000,
+    refreshListInterval: 60000,
     subscribedRooms: {},
     getSubscribedRooms: function() {
 	var rooms = [];
@@ -156,7 +156,7 @@ var klatschclient = {
 	klatschbase.clientList(function(clients) {
 		if (clients && !clients.error) {
 		    var cd =
-		    $(document.createElement("ul")).addClass("clientList");
+		    $(document.createElement("ul")).addClass("clientlist");
 		    for (var i=0; i<clients.length; i++) {
 			cd.append($(document.createElement("li"))
 				  .append(self.recipientLink("client",
