@@ -25,6 +25,7 @@ var klatschclient = {
 	return this.subscribedRooms[name] != undefined;
     },
     sendMessage: function(msgline) {
+	var self = this;
 	var rcpt = this.recipient;
 	if (rcpt) {
 	    var msg = {msgtext: msgline};
@@ -35,8 +36,19 @@ var klatschclient = {
 	    } else {
 		throw "Unknown sender category";
 	    }
-	    klatschbase.postMessage(this.auth, msg);
+	    klatschbase.postMessage(this.auth, msg, function (data) {
+		    self.addOwnMessage(msgline, data === true);
+		});
 	}
+    },
+    addOwnMessage: function(msg, success) {
+	var node = $(document.createElement("span"))
+	.addClass(success ? "successEntry" : "warnEntry")
+	.append($(document.createElement("span")).addClass("info")
+		.text(success ? "Send " : "Failed to send"))
+	.append($(document.createElement("span")).addClass("message")
+		.text(msg));
+	$("p.chat").append(node);
     },
     addMessage: function(node, msg) {
 	node.append($(document.createElement("span")).addClass("sender")
@@ -51,8 +63,7 @@ var klatschclient = {
     },
     addRoomMessage: function(roomId, msg) {
 	var span = $(document.createElement("span")).addClass("roomEntry")
-	.append($(document.createElement("span")).addClass("room")
-		.text(roomId));
+	.append(klatschclient.recipientLink("room", roomId));
 	this.addMessage(span, msg);
     },
     startMessagePolling: function(loginId, password, startKey) {
@@ -144,8 +155,9 @@ var klatschclient = {
 	    $("#msgline").focus();
 	    return false;
 	};
-	return $(document.createElement("a")).attr("href","#")
-	.click(action).text(id);
+	return $(document.createElement("a")).attr("href","#").click(action)
+	.append($(document.createElement("span")).addClass(category)
+		.text(id));
     },
     displayRoomList: function() {
 	var self = klatschclient;
@@ -216,7 +228,9 @@ $(document).ready(function() {
 		    var loginName = document.getElementById('login').value;
 		    password = this.value;
 		    var userDesc = {login: loginName, password: password}
-		    if (document.getElementById('registerFlag').checked) {
+		    var register = document.getElementById('registerFlag')
+			.checked === true;
+		    if (register) {
 			kb.register(loginName, userDesc, onLogin);
 		    } else {
 			kb.login([loginName, password], onLogin);

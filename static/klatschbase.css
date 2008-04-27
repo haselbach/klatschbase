@@ -1,6 +1,9 @@
 body {
 	background-color: #BBBBFF;
 }
+a {
+	color: inherit;
+}
 input {
 	border: 1px solid black;
 }
@@ -11,6 +14,8 @@ p.chat {
 	border: 1px solid black;
 	background-color: #FAF5E0;
 }
+p.chat span.warnEntry,
+p.chat span.successEntry,
 p.chat span.personalEntry,
 p.chat span.roomEntry {
 	border: 1px dashed black;
@@ -19,9 +24,23 @@ p.chat span.roomEntry {
 	margin: 2px;
 	padding: 2px;
 }
+p.chat span.warnEntry {
+	border-color: red;
+}
+p.chat span.successEntry {
+	border-color: blue;
+}
+p.chat span.successEntry span.info {
+	font-weight: bold;
+}
+p.chat span.warnEntry span.info {
+	font-weight: bold;
+	color: red;
+}
 p.chat span.sender {
 	font-weight: bold;
 }
+ul.roomlist span.room,
 p.chat span.room {
 	font-weight: bold;
 	color: blue;
