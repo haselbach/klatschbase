@@ -2,7 +2,7 @@
 
 (defsystem klatschbase
   :description "Chat Web Application"
-  :version "0.1"
+  :version "0.2"
   :author "Christian Haselbach"
   :license "MIT"
   :components ((:file "package")

@@ -159,6 +159,12 @@
 	 (remove-room chat-server name)))
     (remote-api (concatenate 'string base-path "ops/") chat-api)))
 
+(defun obtain-dispatch-table (server)
+  (let ((dispatch-table (server-dispatch-table server)))
+    (if (null dispatch-table)
+	(funcall *meta-dispatcher* server)
+	dispatch-table)))
+
 (defun start-service (&optional &key
 		      hunchentoot-server
 		      chat-server
@@ -170,7 +176,7 @@
 	 (chat-server*   (if (null chat-server)
 			     (make-instance 'chat-server)
 			     chat-server))
-	 (dispatch-table (funcall *meta-dispatcher* server)))
+	 (dispatch-table (obtain-dispatch-table server)))
     (unless (null static-files-path)
       (push (create-folder-dispatcher-and-handler base-path static-files-path)
 	    dispatch-table))
