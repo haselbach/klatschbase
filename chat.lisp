@@ -183,4 +183,4 @@
     (push (create-client-js-dispatcher base-path) dispatch-table)
     (push (create-chat-dispatcher base-path chat-server*) dispatch-table)
     (setf (server-dispatch-table server) dispatch-table)
-    chat-server))
+    chat-server*))

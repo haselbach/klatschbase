@@ -7,7 +7,6 @@
     <script type="text/javascript" src="webtoolkit.base64.js"></script>
     <script type="text/javascript" src="klatschbase.js"></script>
     <script type="text/javascript" src="client.js"></script>
-    <script type="text/javascript" src="IE7.js"></script>
     <link rel="stylesheet" type="text/css" href="klatschbase.css"/>
     <title>Klatschbase</title>
   </head>
@@ -31,6 +30,22 @@
 	</table>
       </form>
     </div>
+    <p class="chat inchat">
+      <span class="personalEntry">
+        <b>Welcome to Klatschbase v0.2.1.</b>
+	Click on a client or room to send a message.
+	Click on the O next to a room to subscribe.
+	Click on the X next to a room to unsubscribe.
+      </span>
+    </p>
+    <div class="inchat console">
+      <form action="#">
+	<span class="recipient">
+	  N/A
+	</span>
+	<input type="text" id="msgline"/>
+      </form>
+    </div>
     <div class="inchat menu">
       <div class="rooms">
 	<span class="room">
@@ -49,21 +64,5 @@
 	</ul>
       </div>
     </div>
-    <p class="chat inchat">
-      <span class="personalEntry">
-        <b>Welcome to Klatschbase v0.2.</b>
-	Click on a client or room to send a message.
-	Click on the O next to a room to subscribe.
-	Click on the X next to a room to unsubscribe.
-      </span>
-    </p>
-    <form action="#" class="inchat">
-      <div class="console">
-	<span class="recipient">
-	  N/A
-	</span>
-	<input type="text" id="msgline"/>
-      </div>
-    </form>
   </body>
 </html>
