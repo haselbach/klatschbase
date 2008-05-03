@@ -45,8 +45,6 @@
 	 (end* (if (< len end) len end)))
     (subseq sequence start end*)))
 
-(defparameter *log* ())
-
 (defun split-uri (uri prefix)
   (let* ((len        (length prefix))
 	 (uri-prefix (subseq* uri 0 len)))
@@ -82,11 +80,14 @@
 	 (create-prefix-dispatcher
 	  ,url-prefix-var
 	  (lambda ()
-	    (let ((,command (get-command-from-request ,url-prefix-var)))
-	      (cond ,@(mapcar (lambda (x) (apply #'generate-api-export-exp
-						 (cons command x)))
-			      export)
-		    (t (handle-malformed-request))))))))))
+	    (setf (content-type)"text/json; charset=utf-8")
+	    (flexi-streams:string-to-octets
+	     (let ((,command (get-command-from-request ,url-prefix-var)))
+	       (cond ,@(mapcar (lambda (x) (apply #'generate-api-export-exp
+						  (cons command x)))
+			       export)
+		     (t (handle-malformed-request))))
+	     :external-format (flexi-streams:make-external-format :utf-8))))))))
 
 (defun fill-holes (l e &optional (i 1))
   (if (null l)
