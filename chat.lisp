@@ -72,7 +72,7 @@
 	   (if (string= category "client")
 	       (string= user (first auth))
 	       t)))
-	((eq 'make-room operation)
+	((eq 'make-room op*)
 	 t)
 	((or (eq 'client-info op*) (eq 'room-info op*))
 	 t)

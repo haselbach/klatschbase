@@ -233,15 +233,16 @@ $(document).ready(function() {
 	    });
 	$("#password").keypress(function(e) {
 		if (e.which == 13) {
-		    var loginName = document.getElementById('login').value;
+		    loginId = document.getElementById('login').value;
 		    password = this.value;
-		    var userDesc = {login: loginName, password: password}
 		    var register = document.getElementById('registerFlag')
 			.checked === true;
 		    if (register) {
-			kb.register(loginName, userDesc, onLogin);
+			kb.register(loginId,
+				    {login: loginId, password: password},
+				    onLogin);
 		    } else {
-			kb.login([loginName, password], onLogin);
+			kb.login([loginId, password], onLogin);
 		    }
 		    return false;
 		}
@@ -253,6 +254,21 @@ $(document).ready(function() {
 
 		    return false;
 		}
+	    });
+	$("#createRoom").click(function() {
+		var roomName = prompt("Name of the room");
+		kb.makeRoom([loginId, password], roomName, function(data) {
+			if (data != null) {
+			    if (data.error == null) {
+				kc.displayRoomList();
+			    } else {
+				alert("Error creating room " + roomName + ": "
+				      + data.description);
+			    }
+			} else {
+			    alert("Unknown error creating room " + roomName);
+			}
+		    });
 	    });
 	var startHeight;
 	var followSlider = function(e) {
@@ -270,4 +286,3 @@ $(document).ready(function() {
 		$(document).unbind('mousemove', followSlider);
 	    });
     });
-
