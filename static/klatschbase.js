@@ -1,6 +1,6 @@
 var klatschclient = {
-    refreshMessageInterval: 5000,
-    refreshListInterval: 60000,
+    refreshMessageInterval: 2,
+    refreshListInterval: 180000,
     subscribedRooms: {},
     getSubscribedRooms: function() {
 	var rooms = [];
@@ -38,6 +38,7 @@ var klatschclient = {
 	    }
 	    klatschbase.postMessage(this.auth, msg, function (data) {
 		    self.addOwnMessage(msgline, data === true);
+		    self.refresh();
 		});
 	}
     },
@@ -104,16 +105,17 @@ var klatschclient = {
 		    });
 	    }
 	    if (count == 0) {
-		if (self.refreshMessageInterval < 60000) {
-		    self.refreshMessageInterval += 1000;
+		if (self.refreshMessageInterval < 20) {
+		    self.refreshMessageInterval++;
 		}
 	    } else if (count > 2) {
-		if (self.refreshMessageInterval > 1000) {
-		    self.refreshMessageInterval -= 1000;
+		if (self.refreshMessageInterval >0) {
+		    self.refreshMessageInterval--;
 		}
 	    }
 	    self.refreshMessageId =
-	    setTimeout('klatschclient.refresh()', self.refreshMessageInterval);
+	    setTimeout('klatschclient.refresh()',
+		       500 * Math.pow(self.refreshMessageInterval, 2));
 	};
 	this.refresh = function() {
 	    klatschbase.getMessagesList([loginId, password],
