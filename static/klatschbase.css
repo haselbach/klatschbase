@@ -4,6 +4,9 @@ body {
 a {
 	color: inherit;
 }
+h2 {
+	margin: 0px;
+}
 input {
 	border: 1px solid black;
 }
@@ -57,6 +60,11 @@ p.chat span.room:after {
 }
 div.menu {
 	width: 13%;
+}
+div.menu h2 {
+	background-color: #999;
+	padding: 4px;
+	font-size: 8pt;
 }
 div.rooms, div.clients {
 	border: 1px solid black;
