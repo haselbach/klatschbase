@@ -73,10 +73,10 @@ div.menu h2 {
 	padding: 4px;
 	font-size: 8pt;
 }
-div.rooms, div.clients {
+div.box, div.rooms, div.clients {
 	border: 1px solid black;
 	margin: 2px;
-	height: 250px;
+	height: 200px;
 	background-color: #CCCCFF;
 }
 div.console {

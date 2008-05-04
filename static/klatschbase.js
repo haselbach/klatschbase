@@ -43,13 +43,19 @@ var klatschclient = {
 	}
     },
     addOwnMessage: function(msg, success) {
+	if (document.getElementById('echoMessage').checked === false) {
+	    return;
+	}
 	var node = $(document.createElement("span"))
 	.addClass(success ? "successEntry" : "warnEntry")
 	.append($(document.createElement("span")).addClass("info")
 		.text(success ? "Send " : "Failed to send"))
 	.append($(document.createElement("span")).addClass("message")
 		.text(msg));
-	$("p.chat").append(node);
+	$("p.chat").append(node)
+	.each(function(id, p) {
+		p.scrollTop = p.scrollHeight;
+	    });
     },
     addMessage: function(node, msg) {
 	node.append($(document.createElement("span")).addClass("sender")
