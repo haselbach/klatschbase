@@ -246,5 +246,20 @@ $(document).ready(function() {
 		    return false;
 		}
 	    });
+	var startHeight;
+	var followSlider = function(e) {
+	    $("p.chat").height(startHeight + e.pageY);
+	}
+	$("div.main div.slider")
+	    .mousedown(function(e) {
+		    startHeight = $("p.chat").height() - e.pageY;
+		    $(document).bind('mousemove', followSlider);
+		})
+	    .mouseup(function() {
+		    $(document).unbind('mousemove', followSlider);
+		});
+	$(document).mouseup(function() {
+		$(document).unbind('mousemove', followSlider);
+	    });
     });
 
