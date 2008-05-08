@@ -81,13 +81,11 @@
 	  ,url-prefix-var
 	  (lambda ()
 	    (setf (content-type)"text/json; charset=utf-8")
-	    (flexi-streams:string-to-octets
-	     (let ((,command (get-command-from-request ,url-prefix-var)))
-	       (cond ,@(mapcar (lambda (x) (apply #'generate-api-export-exp
-						  (cons command x)))
-			       export)
-		     (t (handle-malformed-request))))
-	     :external-format (flexi-streams:make-external-format :utf-8))))))))
+	    (let ((,command (get-command-from-request ,url-prefix-var)))
+	      (cond ,@(mapcar (lambda (x) (apply #'generate-api-export-exp
+						 (cons command x)))
+			      export)
+		    (t (handle-malformed-request))))))))))
 
 (defun fill-holes (l e &optional (i 1))
   (if (null l)
