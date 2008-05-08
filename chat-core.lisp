@@ -234,7 +234,7 @@
     (sender . ,name))))
 
 (defun sha256 (str)
-  (ironclad:digest-sequence :sha256 (ironclad:ascii-string-to-byte-array str)))
+  (ironclad:digest-sequence :sha256 (babel:string-to-octets str)))
 
 (defmethod authenticate-user ((server chat-server) name password)
   (let ((client (get-client-by-id server name)))
