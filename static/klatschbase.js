@@ -149,7 +149,7 @@ var klatschclient = {
 		$("#msgline").focus();
 		return false;
 	    })
-	.text(self.isSubscribed(roomId) ? "X": "O");
+	.text(self.isSubscribed(roomId) ? "\u2611": "\u2610");
     },
     recipientLink: function(category, id) {
 	var self = klatschclient;

@@ -9,4 +9,4 @@
                (:file "rest-my-case" :depends-on ("package"))
                (:file "chat-core"    :depends-on ("package"))
                (:file "chat"         :depends-on ("chat-core" "rest-my-case")))
-  :depends-on (:hunchentoot :cl-json :cl-ppcre :parenscript :ironclad :babel))
+  :depends-on (:hunchentoot :cl-json :cl-ppcre :parenscript :ironclad))
