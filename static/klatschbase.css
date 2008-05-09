@@ -73,11 +73,17 @@ div.menu h2 {
 	padding: 4px;
 	font-size: 8pt;
 }
-div.box, div.rooms, div.clients {
+div.box {
 	border: 1px solid black;
 	margin: 2px;
-	height: 200px;
 	background-color: #CCCCFF;
+}
+div.box div.content {
+	overflow: auto;
+	height: 180px;
+}
+div.box div.content ul {
+	margin: 4px 0;
 }
 div.console {
 	border: 1px solid black;
