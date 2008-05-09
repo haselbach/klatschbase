@@ -104,7 +104,7 @@
     (if (null url-args)
 	url*
 	`(+ ,url*
-	    ,@(mapcan (lambda (x) (list "/" (cdr x)))
+	    ,@(mapcan (lambda (x) (list "/" `(escape ,(cdr x))))
 		      (fill-holes (sort url-args #'< :key #'car)
 				  "x"))))))
 

@@ -273,6 +273,7 @@ $(document).ready(function() {
 	var startHeight;
 	var followSlider = function(e) {
 	    $("p.chat").height(startHeight + e.pageY);
+	    return false;
 	}
 	$("div.main div.slider")
 	    .mousedown(function(e) {

@@ -135,14 +135,15 @@
 (defgeneric authenticate-client (chat-server t t))
 
 
-(defparameter *allowed-chars*
-  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+(defparameter *disallowed-chars*
+  (list #\space #\tab #\newline #\linefeed #\page #\backspace #\return
+	#\/ #\$ #\% #\\ #\& #\^ #\" #\'))
 
 ;; Checks whether the name is valid (i.e., contains only letters and numbers).
 (defun name-p (name)
   (and (>= (length name) 2)
        (<= (length name) 32)
-       (not (find-if (lambda (c) (not (find c *allowed-chars*))) name))))
+       (not (find-if (lambda (c) (find c *disallowed-chars*)) name))))
 
 (defmethod client-message ((client chat-client) (dst chat-object) msg)
   (add-msg (chatmsgs dst) client msg))
@@ -234,7 +235,9 @@
     (sender . ,name))))
 
 (defun sha256 (str)
-  (ironclad:digest-sequence :sha256 (babel:string-to-octets str)))
+  (let* ((utf8 (flexi-streams:make-external-format :utf-8))
+	 (str* (flexi-streams:string-to-octets str :external-format utf8)))
+    (ironclad:digest-sequence :sha256 str*)))
 
 (defmethod authenticate-user ((server chat-server) name password)
   (let ((client (get-client-by-id server name)))

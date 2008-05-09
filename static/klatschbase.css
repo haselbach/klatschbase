@@ -13,7 +13,11 @@ input {
 }
 div.slider {
 	text-align: center;
-	padding: 0px 0px 8px 0px;
+	padding: 0px 0px 5px 0px;
+	margin: 4px 0px;
+	line-height: 8px;
+	cursor: ns-resize;
+	background-color: #BBC;
 }
 div.main {
 	float: right;
