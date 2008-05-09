@@ -3,6 +3,7 @@ body {
 }
 a {
 	color: inherit;
+	text-decoration: none;
 }
 h2 {
 	margin: 0px;
@@ -84,6 +85,9 @@ div.box div.content {
 }
 div.box div.content ul {
 	margin: 4px 0;
+}
+div.box a.button {
+	float: right;
 }
 div.console {
 	border: 1px solid black;

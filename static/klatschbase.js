@@ -285,4 +285,13 @@ $(document).ready(function() {
 	$(document).mouseup(function() {
 		$(document).unbind('mousemove', followSlider);
 	    });
+	$("div.box")
+	    .prepend($(document.createElement("a"))
+		     .addClass("button hideOp").attr("href", "#")
+		     .click(function() {
+			     $("div.content", this.parentNode).slideToggle("fast");
+			     $(this).text($(this).text() == "\u2b06"
+					  ? "\u2b07" : "\u2b06");
+			 })
+		     .text("\u2b06"))
     });
