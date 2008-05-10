@@ -70,6 +70,10 @@ p.chat span.sender:after,
 p.chat span.room:after {
 	content: ") ";
 }
+p.chat span.timestamp {
+       color: #00B;
+       font-style: italic;
+}
 div.menu {
 	width: 13%;
 }

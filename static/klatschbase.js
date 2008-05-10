@@ -1,3 +1,15 @@
+var utilities = {
+    intToString: function(i, n) {
+	var s = "" + i;
+	var m = n - s.length;
+	var t = "";
+	for (var k=0; k<m; k++) {
+	    t += "0";
+	}
+	return t + s;
+    }
+};
+
 var klatschclient = {
     refreshMessageInterval: 2,
     refreshListInterval: 180000,
@@ -58,8 +70,13 @@ var klatschclient = {
 	    });
     },
     addMessage: function(node, msg) {
+	var time = msg.timestamp;
 	node.append($(document.createElement("span")).addClass("sender")
 		    .append(this.recipientLink("client", msg.sender)))
+	.prepend($(document.createElement("span")).addClass("timestamp")
+		 .text(utilities.intToString(time[2], 2) + ":"
+		       + utilities.intToString(time[1], 2) + ":"
+		       + utilities.intToString(time[0], 2)))
 	.append($(document.createElement("span")).addClass("message")
 		.text(msg.text));
 	$("p.chat").append(node);

@@ -230,7 +230,7 @@
 	 (text      (msgtext msg))
 	 (timestamp (msgtimestamp msg)))
   `((id . ,id)
-    (timestamp . ,timestamp)
+    (timestamp . ,(multiple-value-list (decode-universal-time timestamp)))
     (text . ,text)
     (sender . ,name))))
 
