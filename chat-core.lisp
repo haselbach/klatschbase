@@ -232,10 +232,11 @@
   (poll-msgs (chatmsgs co) startkey))
 
 (defmethod poll-activity ((co chat-object))
-  (if (null (last-poll co))
-      0
-      (- 256
-	 (max 1 (truncate (log (+ 1 (get-universal-time) (- (last-poll co))) 2))))))
+  (labels ((norm-time (x)
+	     (- 256 (max 1 (truncate (log (+ 1 (expt x 12)) 2))))))
+    (if (null (last-poll co))
+	0
+	(norm-time (- (get-universal-time) (last-poll co))))))
 
 (defmethod chat-message-dto ((msg chat-message))
   (let* ((sender    (msgsender msg))
