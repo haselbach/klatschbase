@@ -61,7 +61,7 @@ var klatschclient = {
 	var node = $(document.createElement("span"))
 	.addClass(success ? "successEntry" : "warnEntry")
 	.append($(document.createElement("span")).addClass("info")
-		.text(success ? "Send " : "Failed to send"))
+		.text(success ? "Sent " : "Failed to send"))
 	.append($(document.createElement("span")).addClass("message")
 		.text(msg));
 	$("p.chat").append(node)
@@ -207,8 +207,16 @@ var klatschclient = {
 		if (clients && !clients.error) {
 		    var cd =
 		    $(document.createElement("ul")).addClass("clientlist");
+		    clients.sort(function(c1, c2) {
+			    return c2.pollActivity - c1.pollActivity;
+			});
 		    for (var i=0; i<clients.length; i++) {
+			var act = Math.ceil(clients[i].pollActivity / 15);
 			cd.append($(document.createElement("li"))
+				  .append($(document.createElement("div")).text(" ")
+					  .addClass("activity")
+					  .css({borderBottomWidth: act+"px",
+						borderTopWidth: (18-act)+"px"}))
 				  .append(self.recipientLink("client",
 							     clients[i].id)));
 		    }

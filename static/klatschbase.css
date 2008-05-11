@@ -71,7 +71,7 @@ p.chat span.room:after {
 	content: ") ";
 }
 p.chat span.timestamp {
-       color: #00B;
+       color: #555;
        font-style: italic;
 }
 div.menu {
@@ -93,9 +93,21 @@ div.box div.content {
 }
 div.box div.content ul {
 	margin: 4px 0;
+	padding-left: 10px;
+	list-style: none;
 }
 div.box a.button {
 	float: right;
+}
+div.activity {
+	float: left;
+	width: 8px;
+	height: 0px;
+	border-style:solid;
+	border-width:0px;
+	border-top-color: #BBB;
+	border-bottom-color: #5F5;
+        margin-right: 10px;
 }
 div.console {
 	border: 1px solid black;

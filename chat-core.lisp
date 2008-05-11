@@ -68,20 +68,22 @@
       (loop :for id :in old-msgs :do (remhash id msgs)))))
 
 (defclass chat-object ()
-  ((name     :accessor name       :initarg :name)
-   (server   :accessor server     :initarg :server)
-   (messages :accessor chatmsgs
-	     :initform (make-instance 'simple-msg-store)))
+  ((name      :accessor name       :initarg :name)
+   (server    :accessor server     :initarg :server)
+   (messages  :accessor chatmsgs
+	      :initform (make-instance 'simple-msg-store))
+   (last-poll :accessor last-poll
+	      :initform nil))
   (:documentation "Representation of the chat client"))
   
 
 (defclass chat-client (chat-object)
-  ((password   :accessor client-password
-	       :initarg :password)
+  ((password      :accessor client-password
+	          :initarg :password)
    (password-type :accessor client-password-type
 		  :initarg :password-type)
-   (operations :accessor allowed-client-operations
-	       :initform ()))
+   (operations    :accessor allowed-client-operations
+	          :initform ()))
   (:documentation "Representation of the chat client"))
 
 (defclass chat-room (chat-object)
@@ -121,6 +123,9 @@
 (defgeneric get-chat-message (chat-object t))
 
 (defgeneric poll-chat-messages (chat-object t))
+
+(defgeneric poll-activity (chat-object)
+  (:documentation "Determines the activity regarding the chat object's polling history. The activity is an integer in the range 0 to 255 where 0 means no activity and 255 means full activity"))
 
 (defgeneric create-room (chat-server t))
 
@@ -199,11 +204,13 @@
 (defmethod chat-object-dto ((obj chat-room))
   `((id . ,(name obj))
     (category . room)
+    (poll-activity . ,(poll-activity obj))
     (startkey . ,(storeseq (chatmsgs obj)))))
 
 (defmethod chat-object-dto ((obj chat-client))
   `((id . ,(name obj))
     (category . client)
+    (poll-activity . ,(poll-activity obj))
     (startkey . ,(storeseq (chatmsgs obj)))))
 
 
@@ -221,7 +228,14 @@
   (get-msg (chatmsgs co) key))
 
 (defmethod poll-chat-messages ((co chat-object) startkey)
+  (setf (last-poll co) (get-universal-time))
   (poll-msgs (chatmsgs co) startkey))
+
+(defmethod poll-activity ((co chat-object))
+  (if (null (last-poll co))
+      0
+      (- 256
+	 (max 1 (truncate (log (+ 1 (get-universal-time) (- (last-poll co))) 2))))))
 
 (defmethod chat-message-dto ((msg chat-message))
   (let* ((sender    (msgsender msg))
