@@ -52,7 +52,8 @@
 	(split "/" (subseq uri (length prefix)))
 	nil)))
 
-(defun get-command-from-request (prefix &optional (uri (request-uri)))
+(defun get-command-from-request
+    (prefix &optional (uri (url-decode (request-uri))))
   (let* ((pos  (position-if (lambda (x) (find x "?&#")) uri))
 	 (uri* (if (null pos) uri (subseq uri 0 pos))))
     (split-uri uri* prefix)))
@@ -80,7 +81,7 @@
 	 (create-prefix-dispatcher
 	  ,url-prefix-var
 	  (lambda ()
-	    (setf (content-type)"text/json; charset=utf-8")
+	    (setf (content-type) "text/json; charset=utf-8")
 	    (let ((,command (get-command-from-request ,url-prefix-var)))
 	      (cond ,@(mapcar (lambda (x) (apply #'generate-api-export-exp
 						 (cons command x)))
@@ -104,7 +105,7 @@
     (if (null url-args)
 	url*
 	`(+ ,url*
-	    ,@(mapcan (lambda (x) (list "/" `(escape ,(cdr x))))
+	    ,@(mapcan (lambda (x) (list "/" `(encode-u-r-i ,(cdr x))))
 		      (fill-holes (sort url-args #'< :key #'car)
 				  "x"))))))
 

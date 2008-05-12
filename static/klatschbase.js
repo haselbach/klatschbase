@@ -49,19 +49,20 @@ var klatschclient = {
 		throw "Unknown sender category";
 	    }
 	    klatschbase.postMessage(this.auth, msg, function (data) {
-		    self.addOwnMessage(msgline, data === true);
+		    self.addOwnMessage(msgline, data);
 		    self.refresh();
 		});
 	}
     },
-    addOwnMessage: function(msg, success) {
+    addOwnMessage: function(msg, data) {
 	if (document.getElementById('echoMessage').checked === false) {
 	    return;
 	}
 	var node = $(document.createElement("span"))
-	.addClass(success ? "successEntry" : "warnEntry")
+	.addClass(data === true ? "successEntry" : "warnEntry")
 	.append($(document.createElement("span")).addClass("info")
-		.text(success ? "Sent " : "Failed to send"))
+		.text(data === true ? "Sent " :  "Failed to send "
+		      + (data.error ? ("[" + data.description + "] ") : "")))
 	.append($(document.createElement("span")).addClass("message")
 		.text(msg));
 	$("p.chat").append(node)
