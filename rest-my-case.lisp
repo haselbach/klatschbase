@@ -156,7 +156,9 @@
 	    (create _make-base-auth
 		    (lambda (user password)
 		      (return (+ "Basic "
-				 (*base64.encode (+ user ":" password)))))
+				 (*base64.encode
+				  (+ (rfc2407.encode-if-needed user) ":"
+				     (rfc2407.encode-if-needed password))))))
 		    ,@(mapcan (lambda (x)
 				(apply #'generate-client-fun
 				       `(,url-prefix ,remote-object ,@x)))

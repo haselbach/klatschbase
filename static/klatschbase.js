@@ -37,6 +37,7 @@ var klatschclient = {
 	return this.subscribedRooms[name] != undefined;
     },
     sendMessage: function(msgline) {
+	if (msgline == "") return;
 	var self = this;
 	var rcpt = this.recipient;
 	if (rcpt) {
@@ -95,6 +96,7 @@ var klatschclient = {
 	var self = this;
 	this.startkey = startKey;
 	var msgListFun = function(msgsList) {
+	    clearTimeout(self.refreshMessageId);
 	    var count = 0;
 	    if (msgsList != null) {
 		if (msgsList.error) {
