@@ -85,11 +85,11 @@ var klatschclient = {
     },
     addPersonalMessage: function(msg) {
 	var span = $(document.createElement("span")).addClass("personalEntry");
-	klatschclient.addMessage(span, msg);
+	this.addMessage(span, msg);
     },
     addRoomMessage: function(roomId, msg) {
 	var span = $(document.createElement("span")).addClass("roomEntry")
-	.append(klatschclient.recipientLink("room", roomId));
+	.append(this.recipientLink("room", roomId));
 	this.addMessage(span, msg);
     },
     startMessagePolling: function(loginId, password, startKey) {
@@ -162,7 +162,7 @@ var klatschclient = {
 	this.displayRoomList();
     },
     subscribeLink: function(roomId) {
-	var self=klatschclient;
+	var self = this;
 	return $(document.createElement("a")).attr("href","#")
 	.click(function() {
 		self.toggleSubscription(roomId);
@@ -172,7 +172,7 @@ var klatschclient = {
 	.text(self.isSubscribed(roomId) ? "\u2611": "\u2610");
     },
     recipientLink: function(category, id) {
-	var self = klatschclient;
+	var self = this;
 	var action = function() {
 	    var rcptSpan =
 	    $(document.createElement("span")).addClass("recipient")
@@ -188,7 +188,7 @@ var klatschclient = {
 		.text(id));
     },
     displayRoomList: function() {
-	var self = klatschclient;
+	var self = this;
 	klatschbase.roomList(function(rooms) {
 		if (rooms && !rooms.error) {
 		    var rd =
@@ -205,7 +205,7 @@ var klatschclient = {
 	    });
     },
     displayClientList: function() {
-	var self = klatschclient;
+	var self = this;
 	klatschbase.clientList(function(clients) {
 		if (clients && !clients.error) {
 		    var cd =
