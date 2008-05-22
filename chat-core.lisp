@@ -22,7 +22,7 @@
 
 (defclass simple-msg-store (msg-store)
   ((msg-mtx  :accessor msg-mtx
-	     :initform (sb-thread:make-mutex))
+	     :initform (portable-threads:make-lock))
    (seq      :accessor storeseq
 	     :initform 0)
    (messages :accessor chat-messages
@@ -30,7 +30,7 @@
 
 (defmethod add-msg ((store simple-msg-store) sender msgtext
 		    &key (max-age-in-s 600))
-  (sb-thread:with-mutex ((msg-mtx store))
+  (portable-threads:with-lock-held ((msg-mtx store))
     (let* ((msgs     (chat-messages store))
 	   (max-ts   (- (get-universal-time) max-age-in-s))
 	   (old-msgs (loop
@@ -64,7 +64,7 @@
 		      :for msg :being :the :hash-values :in msgs
 		      :if (>= max-ts (msgtimestamp msg))
 		      :collect (msgid msg))))
-    (sb-thread:with-mutex ((msg-mtx store))
+    (portable-threads:with-lock-held ((msg-mtx store))
       (loop :for id :in old-msgs :do (remhash id msgs)))))
 
 (defclass chat-object ()
@@ -96,9 +96,9 @@
    (rooms        :accessor rooms
 		 :initform (make-hash-table :test 'equal))
    (server-mtx   :accessor server-mtx 
-		 :initform (sb-thread:make-mutex))
+		 :initform (portable-threads:make-lock))
    (rooms-mtx    :accessor rooms-mtx
-		 :initform (sb-thread:make-mutex)))
+		 :initform (portable-threads:make-lock)))
  (:documentation "Representation of the chat server"))
 
 
@@ -161,7 +161,7 @@
 
 (defmethod register-client ((server chat-server) (client chat-client))
   (if (name-p (name client))
-      (sb-thread:with-mutex ((server-mtx server))
+      (portable-threads:with-lock-held ((server-mtx server))
 	(let ((name    (name client))
 	      (clients (clients server)))
 	  (if (cadr (multiple-value-list (gethash name clients)))
@@ -172,12 +172,12 @@
       (error "~S is not a valid name" (name client))))
 
 (defmethod unregister-client ((client chat-client))
-  (sb-thread:with-mutex ((server-mtx (server client)))
+  (portable-threads:with-lock-held ((server-mtx (server client)))
     (remhash (name client) (clients (server client)))))
 
 (defmethod create-room ((server chat-server) name)
   (if (name-p name)
-      (sb-thread:with-mutex ((rooms-mtx server))
+      (portable-threads:with-lock-held ((rooms-mtx server))
 	(let ((rooms (rooms server)))
 	  (let ((r (gethash name rooms)))
 	    (if (null r)
@@ -191,7 +191,7 @@
       (error "room already exists")))
 
 (defmethod remove-room ((server chat-server) name)
-  (sb-thread:with-mutex ((rooms-mtx server))
+  (portable-threads:with-lock-held ((rooms-mtx server))
     (let* ((rooms (rooms server))
 	   (room  (gethash name rooms)))
       (if (null room)
