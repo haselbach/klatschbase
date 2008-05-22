@@ -1,4 +1,4 @@
-var rfc2407 = {
+var rfc2047 = {
     leftPad: function(str, len, padChar) {
 	if (padChar == null) padChar = ' ';
 	var n = len - str.length;
@@ -52,14 +52,14 @@ var rfc2407 = {
 	encoding = (encoding == null) ? "B" : encoding.toUpperCase();
 	var slen = str.length;
 	var wlen = Math.floor((75 - 8 - charset.length)
-			      / rfc2407.charMaxLen(charset));
+			      / rfc2047.charMaxLen(charset));
 	var output = "";
 	var bEnc = function() {
 	    var i = 0;
 	    var n = 0;
 	    while (i < slen) {
 		if (n != 0) {
-		    output += rfc2407.crlfsp;
+		    output += rfc2047.crlfsp;
 		}
 		var j = Math.min(slen, i + 4 * Math.ceil(wlen / 5));
 		var substr = str.substring(i, j);
@@ -75,14 +75,14 @@ var rfc2407 = {
 	    var len = 0;
 	    while ((i < slen) && (len < wlen)) {
 		var c = str.charCodeAt(i);
-		if (rfc2407.isDirectB(c)) {
+		if (rfc2047.isDirectB(c)) {
 		    output += str[i];
 		    len++;
 		} else {
 		    if (len + 3 >= wlen) {
 			break;
 		    }
-		    output += "=" + rfc2407.leftPad(c.toString(16), 2, "0");
+		    output += "=" + rfc2047.leftPad(c.toString(16), 2, "0");
 		    len += 3;
 		}
 		i++;
@@ -94,7 +94,7 @@ var rfc2407 = {
 	    var n = 0;
 	    while (i < slen) {
 		if (n != 0) {
-		    output += rfc2407.crlfsp;
+		    output += rfc2047.crlfsp;
 		}
 		output += "=?" + charset + "?" + encoding + "?";
 		i = qEncPart(i, 0);
@@ -109,9 +109,9 @@ var rfc2407 = {
 	return output;
     },
     encodeIfNeeded: function(str, charset, encoding) {
-	if (rfc2407.isSevenBitClean(str)) {
+	if (rfc2047.isSevenBitClean(str)) {
 	    return str;
 	}
-	return rfc2407.encode(str, charset, encoding);
+	return rfc2047.encode(str, charset, encoding);
     }
 };
