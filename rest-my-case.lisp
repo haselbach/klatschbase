@@ -118,12 +118,9 @@
     (if (null i)
 	nil
 	(let ((jarg (elt jargs i)))
-	  `('before-send
-	    (lambda (req)
-	      (req.set-request-header
-	       "Authorization"
-	       ((slot-value ,remote-object '_make-base-auth) (aref ,jarg 0)
-		(aref ,jarg 1)))))))))
+          `('username (aref ,jarg 0)
+            'password (aref ,jarg 1)
+            'authheader true)))))
 
 (defun generate-client-args (args)
   (loop
@@ -153,13 +150,7 @@
 	  specification)
     (parenscript:ps*
      `(setf ,remote-object
-	    (create _make-base-auth
-		    (lambda (user password)
-		      (return (+ "Basic "
-				 (*base64.encode
-				  (+ (rfc2407.encode-if-needed user) ":"
-				     (rfc2407.encode-if-needed password))))))
-		    ,@(mapcan (lambda (x)
+	    (create ,@(mapcan (lambda (x)
 				(apply #'generate-client-fun
 				       `(,url-prefix ,remote-object ,@x)))
 			      export))))))
