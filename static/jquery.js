@@ -2688,8 +2688,16 @@ jQuery.extend({
 
 		// Open the socket
 		// Passing null username, generates a login popup on Opera (#2865)
-		if( s.username )
-			xhr.open(type, s.url, s.async, s.username, s.password);
+		if( s.username ) {
+			if( s.authheader === true ) {
+				var auth = rfc2047.encodeIfNeeded(s.username) +
+					':' + rfc2047.encodeIfNeeded(s.password);
+				xhr.open(type, s.url, s.asyng);
+				xhr.setRequestHeader('Authorization', Base63.encode(auth));
+			}
+			else
+				xhr.open(type, s.url, s.async, s.username, s.password);
+		}
 		else
 			xhr.open(type, s.url, s.async);
 
