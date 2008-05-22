@@ -2693,7 +2693,7 @@ jQuery.extend({
 				var auth = rfc2047.encodeIfNeeded(s.username) +
 					':' + rfc2047.encodeIfNeeded(s.password);
 				xhr.open(type, s.url, s.asyng);
-				xhr.setRequestHeader('Authorization', Base63.encode(auth));
+				xhr.setRequestHeader('Authorization', "Basic " + Base64.encode(auth));
 			}
 			else
 				xhr.open(type, s.url, s.async, s.username, s.password);
