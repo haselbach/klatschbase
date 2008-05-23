@@ -36,23 +36,61 @@ var klatschclient = {
     isSubscribed: function(name) {
 	return this.subscribedRooms[name] != undefined;
     },
-    sendMessage: function(msgline) {
+    postMessage: function(category, name, msgline) {
 	if (msgline == "") return;
-	var self = this;
+        var self = this;
+        var msg = {msgtext: msgline};
+        if (category == "client") {
+            msg.client = name;
+        } else if (category == "room") {
+            msg.room = name;
+        } else {
+            throw "Unknown sender category";
+        }
+        klatschbase.postMessage(this.auth, msg, function (data) {
+                self.addOwnMessage(msgline, data);
+                self.refresh();
+            });
+    },
+    parseCommand: function(msgline) {
+        if (msgline.charAt(0) == "/") {
+            var i = msgline.indexOf(" ");
+            if (i == -1) i = msgline.length;
+            var command = msgline.substring(1, i);
+            switch (command) {
+            case "join":
+                if (i == -1) {
+                    alert("No room name specified");
+                    return;
+                }
+                if (msgline.charAt(i+1) == "#") i++;
+                this.toggleSubscription(msgline.substring(i+1));
+                return;
+            case "msg":
+                if (i == -1) {
+                    alert("No destination specified");
+                    return;
+                }
+                var j = msgline.indexOf(" ", i+1);
+                if (j == -1) return;
+                if (msgline.charAt(i+1) == "#") {
+                    this.postMessage("room",
+                                     msgline.substring(i+2, j),
+                                     msgline.substring(j+1));
+                } else {
+                    this.postMessage("client",
+                                     msgline.substring(i+1, j),
+                                     msgline.substring(j+1));
+                }
+                return;
+            }
+        }
+        sendMessage(msgline);
+    },
+    sendMessage: function(msgline) {
 	var rcpt = this.recipient;
 	if (rcpt) {
-	    var msg = {msgtext: msgline};
-	    if (rcpt[0] == "client") {
-		msg.client = rcpt[1];
-	    } else if (rcpt[0] == "room") {
-		msg.room = rcpt[1];
-	    } else {
-		throw "Unknown sender category";
-	    }
-	    klatschbase.postMessage(this.auth, msg, function (data) {
-		    self.addOwnMessage(msgline, data);
-		    self.refresh();
-		});
+            postMessage(rcpt[0], rcpt[1], msgline);
 	}
     },
     addOwnMessage: function(msg, data) {
@@ -282,9 +320,8 @@ $(document).ready(function() {
 	    });
 	$("#msgline").keypress(function(e) {
 		if (e.which == 13) {
-		    kc.sendMessage(this.value);
+		    kc.parseCommand(this.value);
 		    this.value = "";
-
 		    return false;
 		}
 	    });

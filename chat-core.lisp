@@ -160,7 +160,7 @@
 
 (defparameter *disallowed-chars*
   (list #\space #\tab #\newline #\linefeed #\page #\backspace #\return
-	#\/ #\$ #\% #\\ #\& #\^ #\" #\' #\: #\; #\? #\_))
+	#\/ #\$ #\% #\\ #\& #\^ #\" #\' #\: #\; #\? #\_ #\#))
 
 ;; Checks whether the name is valid (i.e., contains only letters and numbers).
 (defun name-p (name)
