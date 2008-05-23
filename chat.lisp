@@ -26,10 +26,6 @@
      (get-messages-list
       "get-messages" :post
       ((auth :user) (body :body)))
-     (get-messages-wait
-      "get-messages-wait" :get
-      ((auth :user)
-       (category :url-arg 1) (id :url-arg 2) (start-key :url-arg 3)))
      (room-list
       "list-rooms" :get
       ())
