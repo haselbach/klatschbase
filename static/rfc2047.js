@@ -1,3 +1,11 @@
+/*
+ * rfc2047.js 0.1
+ * 
+ * Copyright (c) 2008 Christian Haselbach (mr-co.de)
+ * Licensed under the MIT license.
+ * http://www.opensource.org/licenses/mit-license.php
+ *
+ */
 var rfc2047 = {
     leftPad: function(str, len, padChar) {
 	if (padChar == null) padChar = ' ';
