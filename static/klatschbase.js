@@ -37,8 +37,8 @@ var klatschclient = {
 	return this.subscribedRooms[name] != undefined;
     },
     postMessage: function(category, name, msgline) {
-	if (msgline == "") return;
         var self = this;
+	if (msgline == "") return;
         var msg = {msgtext: msgline};
         if (category == "client") {
             msg.client = name;
@@ -51,6 +51,12 @@ var klatschclient = {
                 self.addOwnMessage(msgline, data);
                 self.refresh();
             });
+    },
+    sendMessage: function(msgline) {
+	var rcpt = this.recipient;
+	if (rcpt) {
+            this.postMessage(rcpt[0], rcpt[1], msgline);
+	}
     },
     parseCommand: function(msgline) {
         if (msgline.charAt(0) == "/") {
@@ -85,13 +91,7 @@ var klatschclient = {
                 return;
             }
         }
-        sendMessage(msgline);
-    },
-    sendMessage: function(msgline) {
-	var rcpt = this.recipient;
-	if (rcpt) {
-            postMessage(rcpt[0], rcpt[1], msgline);
-	}
+        this.sendMessage(msgline);
     },
     addOwnMessage: function(msg, data) {
 	if (document.getElementById('echoMessage').checked === false) {
