@@ -30,9 +30,6 @@
       "get-messages-wait" :get
       ((auth :user)
        (category :url-arg 1) (id :url-arg 2) (start-key :url-arg 3)))
-     (get-messages-list-wait
-      "get-messages-list-wait" :get
-      ((auth :user) (body :body)))
      (room-list
       "list-rooms" :get
       ())
@@ -158,20 +155,6 @@
 		       (messages . ,(get-messages auth category name
 						  startkey)))))
 		 body))
-       (get-messages-list-wait (auth body)
-         (let ((co-list
-                (mapcar
-                 (lambda (x)
-                   (let ((category (cdr (assoc :category x)))
-                         (name     (or (cdr (assoc :name x))
-                                       (cdr (assoc :id x))))
-                         (startkey (cdr (assoc :startkey x))))
-                     (check-access-right `(get-message ,category ,name) auth)
-                     (list (get-chat-object category name)
-                           (parse-key startkey))))
- 		 body)))
-           (mapcar #'chat-message-dto
-                   (poll-chat-messages-list-wait co-list 120))))
        (client-info (auth id)
 	 (check-access-right '(client-info) auth)
 	 (chat-object-dto (get-client-by-id chat-server id)))
@@ -215,3 +198,5 @@
     (push (create-chat-dispatcher base-path chat-server*) dispatch-table)
     (setf (server-dispatch-table server) dispatch-table)
     chat-server*))
+
+

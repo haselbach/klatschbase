@@ -29,6 +29,8 @@ var klatschclient = {
 		    if (data != null && !data.error) {
 			self.subscribedRooms[name] = data;
 			self.displayRoomList();
+                        self.messagePolling(self.auth[0], self.auth[1],
+                                            "room", name, data.startkey);
 		    }
 		});
 	}
@@ -92,58 +94,11 @@ var klatschclient = {
 	.append(this.recipientLink("room", roomId));
 	this.addMessage(span, msg);
     },
-    startMessagePolling: function(loginId, password, startKey) {
+    messagePolling: function(loginId, password, category, name, startkey) {
 	var self = this;
-	this.startkey = startKey;
-	var msgListFun = function(msgsList) {
-	    clearTimeout(self.refreshMessageId);
-	    var count = 0;
-	    if (msgsList != null) {
-		if (msgsList.error) {
-		    return;
-		}
-		$.each(msgsList, function(key, msgs) {
-			if (msgs != null && msgs.messages != null
-			    && msgs.messages.length > 0) {
-			    var mlist = msgs.messages;
-			    var nextStartkey = mlist[mlist.length - 1].id + 1;
-			    if (msgs.key.category == "room") {
-				var roomId = msgs.key.name;
-				var room = self.subscribedRooms[roomId];
-				if (room) {
-				    room.startkey = nextStartkey;
-				    $.each(mlist, function(id, msg) {
-					    count++;
-					    self.addRoomMessage(roomId, msg);
-					});
-				}
-			    } else if (msgs.key.category == "client") {
-				self.startkey = nextStartkey;
-				$.each(mlist, function(id, msg) {
-					count++;
-					self.addPersonalMessage(msg);
-				    });
-			    }
-			    $("p.chat").each(function(id, p) {
-				    p.scrollTop = p.scrollHeight;
-				});
-			}
-		    });
-	    }
-	    if (count == 0) {
-		if (self.refreshMessageInterval < 20) {
-		    self.refreshMessageInterval++;
-		}
-	    } else if (count > 2) {
-		if (self.refreshMessageInterval >0) {
-		    self.refreshMessageInterval--;
-		}
-	    }
-	    self.refreshMessageId =
-	    setTimeout('klatschclient.refresh()',
-		       500 * Math.pow(self.refreshMessageInterval, 2));
-	};
-        var msgListFun2 = function(messages) {
+        var isRoom = category == "room";
+        var refresh;
+        var msgListFun = function(messages) {
 	    clearTimeout(self.refreshMessageId);
 	    if (messages != null) {
 		if (messages.error) {
@@ -151,44 +106,42 @@ var klatschclient = {
 		}
                 if (messages.length > 0) {
                     var mlist = messages;
-                    var nextStartkey = mlist[mlist.length - 1].id + 1;
-                    self.startkey = nextStartkey;
-                    $.each(mlist, function(id, msg) {
-                            self.addPersonalMessage(msg);
-                        });
+                    startkey = mlist[mlist.length - 1].id + 1;
+                    if (isRoom) {
+                        $.each(mlist, function(id, msg) {
+                                self.addRoomMessage(name, msg);
+                            });
+                    } else {
+                        $.each(mlist, function(id, msg) {
+                                self.addPersonalMessage(msg);
+                            });
+                    }
                     $("p.chat").each(function(id, p) {
                             p.scrollTop = p.scrollHeight;
                         });
                 }
             }
-            self.refresh();
+            refresh();
         };
-	this.refresh = function() {
-	    klatschbase.getMessagesList([loginId, password],
-					[{category: "client",
-					  name: loginId,
-					  startkey: self.startkey}]
-					.concat(self.getSubscribedRooms()),
-					msgListFun);
-	};
-        this.refresh = function() {
-            klatschbase.getMessagesListWait([loginId, password],
-                                            [{category: "client",
-                                              name: loginId,
-                                              startkey: self.startkey}],
-                                            msgListFun2);
+        refresh = function() {
+            //alert("Calling refresh");
+            klatschbase.getMessagesWait([loginId, password],
+                                        category, name, startkey,
+                                        msgListFun, refresh);
+            //alert("Called it");
         };
-	//self.refresh();
-        setTimeout('klatschclient.refresh()',
-                   500 * Math.pow(self.refreshMessageInterval, 2));
+        refresh();
+    },
+    setupListeners: function(loginId, password, startkey) {
 	this.refreshClientListId =
 	setInterval('klatschclient.displayClientList()',
-		    self.refreshListInterval);
+		    this.refreshListInterval);
 	this.refreshRoomListId =
 	setInterval('klatschclient.displayRoomList()',
-		    self.refreshListInterval);
+		    this.refreshListInterval);
 	this.displayClientList();
 	this.displayRoomList();
+        this.messagePolling(loginId, password, "client", loginId, startkey);
     },
     subscribeLink: function(roomId) {
 	var self = this;
@@ -269,7 +222,9 @@ $(document).ready(function() {
 		    alert("Error:" + data.description);
 		} else {
 		    loginId = data.id;
-		    kc.startMessagePolling(loginId, password, data.startkey);
+                    setTimeout("klatschclient.setupListeners('"
+                               + loginId + "','" + password
+                               + "'," + data.startkey + ")", 500);
 		    $(".login").hide();
 		    $(".inchat").show();
 		    kc.auth = [loginId, password];

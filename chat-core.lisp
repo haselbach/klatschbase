@@ -258,30 +258,6 @@
      :for (co startkey) :in co-list
      :append (poll-chat-messages co startkey)))
 
-(defun poll-chat-messages-list-wait (co-list timeout)
-  (let ((msgs (poll-chat-messages-list co-list)))
-    (if (zerop (length msgs))
-        (let* ((trigger (make-condition-variable))
-               (threads
-                (loop
-                   :for (co starkey) :in co-list
-                   :collect (spawn-thread
-                             "wait for one chat-object in the list"
-                             (lambda ()
-                               (let ((msgs-trigger (msg-trigger (chatmsgs co))))
-                                 (with-lock-held (msgs-trigger)
-                                   (condition-variable-wait msgs-trigger))
-                                 (condition-variable-broadcast trigger)))))))
-          (with-lock-held (trigger)
-            (condition-variable-wait-with-timeout trigger timeout))
-          (loop
-             :for thread :in threads
-             :do (handler-case
-                     (kill-thread thread)
-                   (error ())))
-          (poll-chat-messages-list co-list))
-        msgs)))
-
 (defmethod poll-activity ((co chat-object))
   (labels ((norm-time (x)
 	     (- 256 (max 1 (truncate (log (+ 1 (expt x 12)) 2))))))
