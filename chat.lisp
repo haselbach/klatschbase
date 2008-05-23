@@ -26,6 +26,13 @@
      (get-messages-list
       "get-messages" :post
       ((auth :user) (body :body)))
+     (get-messages-wait
+      "get-messages-wait" :get
+      ((auth :user)
+       (category :url-arg 1) (id :url-arg 2) (start-key :url-arg 3)))
+     (get-messages-list-wait
+      "get-messages-list-wait" :get
+      ((auth :user) (body :body)))
      (room-list
       "list-rooms" :get
       ())
@@ -94,6 +101,18 @@
 					 :password-type (cons :sha256 user)
 					 :server chat-server)))
 	   (register-client chat-server client)))
+       (get-chat-object (category id)
+         (cond
+           ((string= "client" category)
+            (get-client-by-id chat-server id))
+           ((string= "room" category)
+            (get-room-by-id chat-server id))
+           (t
+            (error "unknown category"))))
+       (parse-key (startkey)
+         (if (stringp startkey)
+             (parse-integer startkey)
+             startkey))
        (login (auth)
 	 (check-access-right '(login) auth)
 	 (chat-object-dto (get-client-by-id chat-server (first auth))))
@@ -113,22 +132,20 @@
        (get-message (auth category user key)
 	 (check-access-right `(get-message ,category ,user) auth)
 	 (let ((client    (get-client-by-id chat-server user))
-	       (key*      (parse-integer key)))
+	       (key*      (parse-key key)))
 	   (chat-message-dto (get-chat-message client key*))))
        (get-messages (auth category id startkey)
 	 (check-access-right `(get-message ,category ,id) auth)
-	 (let ((chat-obj  (cond
-			    ((string= "client" category)
-			     (get-client-by-id chat-server id))
-			    ((string= "room" category)
-			     (get-room-by-id chat-server id))
-			    (t
-			     (error "unknown category"))))
-	       (key*      (if (stringp startkey)
-			      (parse-integer startkey)
-			      startkey)))
+	 (let ((chat-obj (get-chat-object category id))
+	       (key*     (parse-key startkey)))
 	   (mapcar #'chat-message-dto
 		   (poll-chat-messages chat-obj key*))))
+       (get-messages-wait (auth category id startkey)
+         (check-access-right `(get-message ,category ,id) auth)
+         (let ((chat-obj (get-chat-object category id))
+               (key*     (parse-key startkey)))
+           (mapcar #'chat-message-dto
+                   (poll-chat-messages-wait chat-obj key* 120))))
        (get-messages-list (auth body)
 	 (mapcar (lambda (x)
 		   (let ((category (cdr (assoc :category x)))
@@ -141,6 +158,20 @@
 		       (messages . ,(get-messages auth category name
 						  startkey)))))
 		 body))
+       (get-messages-list-wait (auth body)
+         (let ((co-list
+                (mapcar
+                 (lambda (x)
+                   (let ((category (cdr (assoc :category x)))
+                         (name     (or (cdr (assoc :name x))
+                                       (cdr (assoc :id x))))
+                         (startkey (cdr (assoc :startkey x))))
+                     (check-access-right `(get-message ,category ,name) auth)
+                     (list (get-chat-object category name)
+                           (parse-key startkey))))
+ 		 body)))
+           (mapcar #'chat-message-dto
+                   (poll-chat-messages-list-wait co-list 120))))
        (client-info (auth id)
 	 (check-access-right '(client-info) auth)
 	 (chat-object-dto (get-client-by-id chat-server id)))

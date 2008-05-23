@@ -51,7 +51,7 @@ var klatschclient = {
 	    }
 	    klatschbase.postMessage(this.auth, msg, function (data) {
 		    self.addOwnMessage(msgline, data);
-		    self.refresh();
+		    //self.refresh();
 		});
 	}
     },
@@ -143,6 +143,26 @@ var klatschclient = {
 	    setTimeout('klatschclient.refresh()',
 		       500 * Math.pow(self.refreshMessageInterval, 2));
 	};
+        var msgListFun2 = function(messages) {
+	    clearTimeout(self.refreshMessageId);
+	    if (messages != null) {
+		if (messages.error) {
+		    return;
+		}
+                if (messages.length > 0) {
+                    var mlist = messages;
+                    var nextStartkey = mlist[mlist.length - 1].id + 1;
+                    self.startkey = nextStartkey;
+                    $.each(mlist, function(id, msg) {
+                            self.addPersonalMessage(msg);
+                        });
+                    $("p.chat").each(function(id, p) {
+                            p.scrollTop = p.scrollHeight;
+                        });
+                }
+            }
+            self.refresh();
+        };
 	this.refresh = function() {
 	    klatschbase.getMessagesList([loginId, password],
 					[{category: "client",
@@ -150,8 +170,17 @@ var klatschclient = {
 					  startkey: self.startkey}]
 					.concat(self.getSubscribedRooms()),
 					msgListFun);
-	}
-	self.refresh();
+	};
+        this.refresh = function() {
+            klatschbase.getMessagesListWait([loginId, password],
+                                            [{category: "client",
+                                              name: loginId,
+                                              startkey: self.startkey}],
+                                            msgListFun2);
+        };
+	//self.refresh();
+        setTimeout('klatschclient.refresh()',
+                   500 * Math.pow(self.refreshMessageInterval, 2));
 	this.refreshClientListId =
 	setInterval('klatschclient.displayClientList()',
 		    self.refreshListInterval);

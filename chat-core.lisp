@@ -17,6 +17,8 @@
 
 (defgeneric poll-msgs (msg-store t))
 
+(defgeneric poll-msgs-wait (msg-store t t))
+
 (defgeneric clean-msg-store (msg-store &optional &key max-age-in-s))
 
 
@@ -26,7 +28,9 @@
    (seq      :accessor storeseq
 	     :initform 0)
    (messages :accessor chat-messages
-	     :initform (make-hash-table))))
+	     :initform (make-hash-table))
+   (trigger  :accessor msg-trigger
+             :initform (portable-threads:make-condition-variable))))
 
 (defmethod add-msg ((store simple-msg-store) sender msgtext
 		    &key (max-age-in-s 600))
@@ -44,7 +48,9 @@
 			   :id id
 			   :timestamp (get-universal-time)
 			   :sender sender
-			   :text msgtext)))))
+			   :text msgtext))))
+  (portable-threads:with-lock-held ((msg-trigger store))
+    (portable-threads:condition-variable-broadcast (msg-trigger store))))
 
 (defmethod get-msg ((store simple-msg-store) key)
   (gethash key (chat-messages store)))
@@ -56,6 +62,16 @@
       :if (>= (msgid msg) startkey) :collect msg)
    #'<
    :key #'msgid))
+
+(defmethod poll-msgs-wait ((store simple-msg-store) startkey timeout)
+  (let ((msgs (poll-msgs store startkey)))
+    (if (zerop (length msgs))
+        (progn
+          (portable-threads:with-lock-held ((msg-trigger store))
+            (portable-threads:condition-variable-wait-with-timeout
+             (msg-trigger store) timeout))
+          (poll-msgs store startkey))
+        msgs)))
 
 (defmethod clean-msg-store ((store simple-msg-store) &key (max-age-in-s 600))
   (let* ((msgs     (chat-messages store))
@@ -123,6 +139,8 @@
 (defgeneric get-chat-message (chat-object t))
 
 (defgeneric poll-chat-messages (chat-object t))
+
+(defgeneric poll-chat-messages-wait (chat-object t t))
 
 (defgeneric poll-activity (chat-object)
   (:documentation "Determines the activity regarding the chat object's polling history. The activity is an integer in the range 0 to 255 where 0 means no activity and 255 means full activity"))
@@ -230,6 +248,39 @@
 (defmethod poll-chat-messages ((co chat-object) startkey)
   (setf (last-poll co) (get-universal-time))
   (poll-msgs (chatmsgs co) startkey))
+
+(defmethod poll-chat-messages-wait ((co chat-object) startkey timeout)
+  (setf (last-poll co) (get-universal-time))
+  (poll-msgs-wait (chatmsgs co) startkey timeout))
+
+(defun poll-chat-messages-list (co-list)
+  (loop
+     :for (co startkey) :in co-list
+     :append (poll-chat-messages co startkey)))
+
+(defun poll-chat-messages-list-wait (co-list timeout)
+  (let ((msgs (poll-chat-messages-list co-list)))
+    (if (zerop (length msgs))
+        (let* ((trigger (make-condition-variable))
+               (threads
+                (loop
+                   :for (co starkey) :in co-list
+                   :collect (spawn-thread
+                             "wait for one chat-object in the list"
+                             (lambda ()
+                               (let ((msgs-trigger (msg-trigger (chatmsgs co))))
+                                 (with-lock-held (msgs-trigger)
+                                   (condition-variable-wait msgs-trigger))
+                                 (condition-variable-broadcast trigger)))))))
+          (with-lock-held (trigger)
+            (condition-variable-wait-with-timeout trigger timeout))
+          (loop
+             :for thread :in threads
+             :do (handler-case
+                     (kill-thread thread)
+                   (error ())))
+          (poll-chat-messages-list co-list))
+        msgs)))
 
 (defmethod poll-activity ((co chat-object))
   (labels ((norm-time (x)

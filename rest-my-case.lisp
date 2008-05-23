@@ -131,7 +131,7 @@
   (let* ((jargs     (generate-client-args args))
 	 (dyna-url  (create-dyna-url url-prefix name args jargs))
 	 (dyna-body (create-dyna-body args jargs)))
-    `(,fun (lambda ,(append jargs '(success))
+    `(,fun (lambda ,(append jargs '(success error))
 	     (j-query.ajax (create 'url ,dyna-url
 				   'type ,(symbol-name type)
 				   'data-type "json"
@@ -141,7 +141,8 @@
 						  ,dyna-body)))
 				   ,@(create-dyna-authorization remote-object
 								args jargs)
-				   'success success))))))
+				   'success success
+                                   'error error))))))
 
 (defun client-remote-api (url-prefix remote-object &rest specification)
   (destructuring-bind (&optional &key export)
