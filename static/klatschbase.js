@@ -277,6 +277,20 @@ $(document).ready(function() {
 	var kb = klatschbase;
 	var loginId;
         var password;
+        var doLogin = function() {
+            loginId = document.getElementById('login').value;
+            password = document.getElementById('password').value;
+            var register = document.getElementById('registerFlag')
+            .checked === true;
+            if (register) {
+                kb.register(loginId,
+                            {login: loginId, password: password},
+                            onLogin);
+            } else {
+                kb.login([loginId, password], onLogin);
+            }
+            return false;
+        }
 	var onLogin = function(data) {
 	    if (data) {
 		if (data.error) {
@@ -305,21 +319,9 @@ $(document).ready(function() {
 		$("#password").focus();
 	    });
 	$("#password").keypress(function(e) {
-		if (e.which == 13) {
-		    loginId = document.getElementById('login').value;
-		    password = this.value;
-		    var register = document.getElementById('registerFlag')
-			.checked === true;
-		    if (register) {
-			kb.register(loginId,
-				    {login: loginId, password: password},
-				    onLogin);
-		    } else {
-			kb.login([loginId, password], onLogin);
-		    }
-		    return false;
-		}
+		if (e.which == 13) return doLogin();
 	    });
+        $("#loginSubmit").click(doLogin);
 	$("#msgline").keypress(function(e) {
 		if (e.which == 13) {
 		    kc.parseCommand(this.value);

@@ -74,6 +74,10 @@ p.chat span.timestamp {
        color: #555;
        font-style: italic;
 }
+p.chat span.commandhint {
+       color: #555;
+       font-family: sans-serif;
+}
 div.menu {
 	width: 13%;
 }

@@ -28,16 +28,30 @@
 	    <td>New Account:</td>
 	    <td><input type="checkbox" id="registerFlag"/></td>
 	  </tr>
+          <tr>
+            <td></td>
+            <td>
+              <input type="submit" id="loginSubmit"
+                     value="OK"/>
+            </td>
+          </tr>
 	</table>
       </form>
     </div>
     <div class="main inchat">
       <p class="chat">
 	<span class="personalEntry">
-          <b>Welcome to Klatschbase v0.5.</b>
+          <b>Welcome to Klatschbase v0.5.</b><br/>
 	  Click on a client or room to send a message.
 	  Click on the &#x2610; next to a room to subscribe.
-	  Click on the &#x2611; next to a room to unsubscribe.
+	  Click on the &#x2611; next to a room to unsubscribe.<br/>
+          You can also send direct messages to other users
+          by entering
+          <span class="commandhint">/msg WHO MSG</span> and
+          to rooms by entering
+          <span class="commandhint">/msg #ROOM MSG</span>.<br/>
+          You can toggle the subscription with
+          <span class="commandhint">/join #ROOM</span>.
 	</span>
       </p>
       <div class="slider">...</div>
