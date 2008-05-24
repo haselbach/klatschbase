@@ -93,6 +93,11 @@ var klatschclient = {
         }
         this.sendMessage(msgline);
     },
+    scrollToBottom: function() {
+        $("p.chat").each(function(id, p) {
+                p.scrollTop = p.scrollHeight;
+            });
+    },
     addOwnMessage: function(msg, data) {
 	if (document.getElementById('echoMessage').checked === false) {
 	    return;
@@ -104,10 +109,8 @@ var klatschclient = {
 		      + (data.error ? ("[" + data.description + "] ") : "")))
 	.append($(document.createElement("span")).addClass("message")
 		.text(msg));
-	$("p.chat").append(node)
-	.each(function(id, p) {
-		p.scrollTop = p.scrollHeight;
-	    });
+	$("p.chat").append(node);
+        this.scrollToBottom();
     },
     addMessage: function(node, msg) {
 	var time = msg.timestamp;
@@ -133,13 +136,16 @@ var klatschclient = {
     startMessagePolling: function(loginId, password, startkey) {
         var self = this;
         this.startkey = startkey;
+        var scheduleNextMessagePoll = function() {
+            this.refreshMessageId =
+            setTimeout('klatschclient.refresh()',
+                       500 * Math.pow(self.refreshMessageInterval, 2));
+        };
         var msgListFun = function(msgsList) {
             clearTimeout(self.refreshMessageId);
             var count = 0;
             if (msgsList != null) {
-                if (msgsList.error) {
-                    return;
-                }
+                if (msgsList.error) return;
                 $.each(msgsList, function(key, msgs) {
                         if (msgs != null && msgs.messages != null
                             && msgs.messages.length > 0) {
@@ -162,24 +168,20 @@ var klatschclient = {
                                         self.addPersonalMessage(msg);
                                     });
                             }
-                            $("p.chat").each(function(id, p) {
-                                    p.scrollTop = p.scrollHeight;
-                                });
-                        }
+                            self.scrollToBottom();
+                         }
                     });
             }
             if (count == 0) {
                 if (self.refreshMessageInterval < 20) {
                     self.refreshMessageInterval++;
                 }
-            } else if (count > 2) {
+            } else if (count >= 2) {
                 if (self.refreshMessageInterval > 0) {
                     self.refreshMessageInterval--;
                 }
             }
-            self.refreshMessageId =
-            setTimeout('klatschclient.refresh()',
-                       500 * Math.pow(self.refreshMessageInterval, 2));
+            scheduleNextMessagePoll();
         }
         this.refresh = function() {
             klatschbase.getMessagesList([loginId, password],
@@ -187,7 +189,7 @@ var klatschclient = {
                                           name: loginId,
                                           startkey: self.startkey}]
                                         .concat(self.getSubscribedRooms()),
-                                        msgListFun);
+                                        msgListFun, scheduleNextMessagePoll);
         };
         this.refresh();
     },
