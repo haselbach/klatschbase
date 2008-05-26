@@ -117,6 +117,20 @@ var klatschclient = {
                              msgline.substring(j+1));
         }
     },
+    commandCd: function(msgline, i) {
+        if (i == msgline.length) {
+            alert("No destination specified");
+            return;
+        }
+        var category;
+        if (msgline.charAt(i+1) == "#") {
+            category = "room";
+            i++;
+        } else {
+            category = "client";
+        }
+        this.changeRecipient(category, msgline.substring(i+1));
+    },
     parseCommand: function(msgline) {
         if (msgline.charAt(0) == "/") {
             var i = msgline.indexOf(" ");
@@ -126,6 +140,7 @@ var klatschclient = {
             case "join": this.commandJoin(msgline, i, true); return;
             case "part": this.commandJoin(msgline, i, false); return;
             case "msg":  this.commandMsg(msgline, i);  return;
+            case "cd":   this.commandCd(msgline, i); return;
             }
         }
         this.sendMessage(msgline);
@@ -251,19 +266,22 @@ var klatschclient = {
 	    })
 	.text(self.isSubscribed(roomId) ? "\u2611": "\u2610");
     },
+    changeRecipient: function(category, id) {
+	var rcptSpan =
+	    $(document.createElement("span")).addClass("recipient")
+	.append($(document.createElement("span")).addClass(category)
+		.text(id));
+	$("span.recipient").replaceWith(rcptSpan);
+	this.recipient = [category, id];
+	$("#msgline").focus();
+    },
     recipientLink: function(category, id) {
 	var self = this;
-	var action = function() {
-	    var rcptSpan =
-	    $(document.createElement("span")).addClass("recipient")
-	    .append($(document.createElement("span")).addClass(category)
-		    .text(id));
-	    $("span.recipient").replaceWith(rcptSpan);
-	    self.recipient = [category, id];
-	    $("#msgline").focus();
+	return $(document.createElement("a")).attr("href","#")
+        .click(function() {
+            self.changeRecipient(category, id);
 	    return false;
-	};
-	return $(document.createElement("a")).attr("href","#").click(action)
+	})
 	.append($(document.createElement("span")).addClass(category)
 		.text(id));
     },
