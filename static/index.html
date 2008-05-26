@@ -13,6 +13,18 @@
   </head>
   <body>
     <h1>Klatschbase</h1>
+    <div class="preload">
+      <p>
+        Loading...
+      </p>
+      <p>
+        If this does not disappear in a few seconds, you probably
+        have Javascript disabled.
+      </p>
+      <p>
+        Sorry, but this application requires an AJAX capable browser.
+      </p>
+    </div>
     <div class="login">
       <form action="#">
 	<table>
@@ -50,8 +62,11 @@
           <span class="commandhint">/msg WHO MSG</span> and
           to rooms by entering
           <span class="commandhint">/msg #ROOM MSG</span>.<br/>
-          You can toggle the subscription with
-          <span class="commandhint">/join #ROOM</span>.
+          You can subscribe to a room with
+          <span class="commandhint">/join #ROOM</span>
+          and unsubscribe with
+          <span class="commandhint">/join #ROOM</span>. The # is
+          optional. Regular expressions are supported.
 	</span>
       </p>
       <div class="slider">...</div>

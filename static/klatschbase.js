@@ -7,6 +7,20 @@ var utilities = {
 	    t += "0";
 	}
 	return t + s;
+    },
+    createSlider: function(selector) {
+        var startHeight;
+        var followSlider = function(e) {
+	    $("p.chat").height(startHeight + e.pageY);
+	    return false;
+        }
+        $(selector).mousedown(function(e) {
+	    startHeight = $("p.chat").height() - e.pageY;
+	    $(document).bind('mousemove', followSlider);
+        });
+        $(document).mouseup(function() {
+	    $(document).unbind('mousemove', followSlider);
+        });
     }
 };
 
@@ -297,24 +311,13 @@ var klatschclient = {
 };
 
 $(document).ready(function() {
-	var kc = klatschclient;
-	var kb = klatschbase;
-	var loginId;
-        var password;
-        var doLogin = function() {
-            loginId = document.getElementById('login').value;
-            password = document.getElementById('password').value;
-            var register = document.getElementById('registerFlag')
-            .checked === true;
-            if (register) {
-                kb.register(loginId,
-                            {login: loginId, password: password},
-                            onLogin);
-            } else {
-                kb.login([loginId, password], onLogin);
-            }
-            return false;
-        }
+    var kc = klatschclient;
+    var kb = klatschbase;
+    var doLogin = function() {
+        var loginId = document.getElementById('login').value;
+        var password = document.getElementById('password').value;
+        var register = document.getElementById('registerFlag')
+        .checked === true;
 	var onLogin = function(data) {
 	    if (data) {
 		if (data.error) {
@@ -332,65 +335,59 @@ $(document).ready(function() {
 	    } else {
 		alert("epic fail");
 	    }
+        }
+        if (register) {
+            kb.register(loginId,
+                        {login: loginId, password: password},
+                        onLogin);
+        } else {
+            kb.login([loginId, password], onLogin);
+        }
+        return false;
+    }
+    $("#login").keypress(function(e) {
+	if (e.which == 13) {
+	    $("#password").focus();
 	}
-	$(".inchat").hide();
-	$("#login").keypress(function(e) {
-		if (e.which == 13) {
-		    $("#password").focus();
-		}
-	    }).focus();
-	$("#registerFlag").click(function() {
-		$("#password").focus();
-	    });
-	$("#password").keypress(function(e) {
-		if (e.which == 13) return doLogin();
-	    });
-        $("#loginSubmit").click(doLogin);
-	$("#msgline").keypress(function(e) {
-		if (e.which == 13) {
-		    kc.parseCommand(this.value);
-		    this.value = "";
-		    return false;
-		}
-	    });
-	$("#createRoom").click(function() {
-		var roomName = prompt("Name of the room");
-		kb.makeRoom([loginId, password], roomName, function(data) {
-			if (data != null) {
-			    if (data.error == null) {
-				kc.displayRoomList();
-			    } else {
-				alert("Error creating room " + roomName + ": "
-				      + data.description);
-			    }
-			} else {
-			    alert("Unknown error creating room " + roomName);
-			}
-		    });
-	    });
-	var startHeight;
-	var followSlider = function(e) {
-	    $("p.chat").height(startHeight + e.pageY);
+    }).focus();
+    $("#registerFlag").click(function() {
+	$("#password").focus();
+    });
+    $("#password").keypress(function(e) {
+	if (e.which == 13) return doLogin();
+    });
+    $("#loginSubmit").click(doLogin);
+    $("#msgline").keypress(function(e) {
+	if (e.which == 13) {
+	    kc.parseCommand(this.value);
+	    this.value = "";
 	    return false;
 	}
-	$("div.main div.slider")
-	    .mousedown(function(e) {
-		    startHeight = $("p.chat").height() - e.pageY;
-		    $(document).bind('mousemove', followSlider);
-		})
-	    .mouseup(function() {
-		    $(document).unbind('mousemove', followSlider);
-		});
-	$(document).mouseup(function() {
-		$(document).unbind('mousemove', followSlider);
-	    });
-	$("div.box")
-	    .prepend($(document.createElement("a"))
-		     .addClass("button hideOp").attr("href", "#")
-		     .click(function() {
-			     $("div.content", this.parentNode).slideToggle("fast");
-			     $(this).text($(this).text() == "\u2b06"
-					  ? "\u2b07" : "\u2b06");
-			 })
-		     .text("\u2b06"))
     });
+    $("#createRoom").click(function() {
+	var roomName = prompt("Name of the room");
+	kb.makeRoom([loginId, password], roomName, function(data) {
+	    if (data != null) {
+		if (data.error == null) {
+		    kc.displayRoomList();
+		} else {
+		    alert("Error creating room " + roomName + ": "
+			  + data.description);
+		}
+	    } else {
+		alert("Unknown error creating room " + roomName);
+	    }
+	});
+    });
+    utilities.createSlider("div.main div.slider");
+    $("div.box").prepend($(document.createElement("a"))
+	     .addClass("button hideOp").attr("href", "#")
+	     .click(function() {
+		 $("div.content", this.parentNode).slideToggle("fast");
+		 $(this).text($(this).text() == "\u2b06"
+			      ? "\u2b07" : "\u2b06");
+	     })
+	     .text("\u2b06"));
+    $(".preload").hide();
+    $(".login").show();
+});

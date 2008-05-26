@@ -24,6 +24,9 @@ div.main {
 	width: 85%;
 	padding-right: 1%;
 }
+.login, .inchat {
+	display: none;
+}
 p.chat {
 	margin: 0px;
 	height: 400px;
