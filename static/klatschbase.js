@@ -13,28 +13,32 @@ var utilities = {
 var klatschclient = {
     refreshMessageInterval: 2,
     refreshListInterval: 180000,
+    allRooms: null,
     subscribedRooms: {},
     getSubscribedRooms: function() {
 	var rooms = [];
 	$.each(this.subscribedRooms, function(i,room) { rooms.push(room); });
 	return rooms;
     },
-    toggleSubscription: function(name) {
-	var self = this;
-	if (self.subscribedRooms[name] != undefined) {
-	    self.subscribedRooms[name] = undefined;
-	    self.displayRoomList();
-	} else {
-	    klatschbase.roomInfo(self.auth, name, function(data) {
-		    if (data != null && !data.error) {
-			self.subscribedRooms[name] = data;
-			self.displayRoomList();
-		    }
-		});
-	}
-    },
     isSubscribed: function(name) {
-	return this.subscribedRooms[name] != undefined;
+        return this.subscribedRooms[name] != undefined
+    },
+    subscribe: function(name) {
+        var self = this;
+        klatschbase.roomInfo(self.auth, name, function(data) {
+	    if (data != null && !data.error) {
+		self.subscribedRooms[name] = data;
+		self.displayRoomList();
+	    }
+	});
+    },
+    unsubscribe: function(name) {
+        this.subscribedRooms[name] = undefined;
+	this.displayRoomList();
+    },
+    toggleSubscription: function(name) {
+        if (this.isSubscribed(name)) this.unsubscribe(name);
+        else this.subscribe(name);
     },
     postMessage: function(category, name, msgline) {
         var self = this;
@@ -58,37 +62,56 @@ var klatschclient = {
             this.postMessage(rcpt[0], rcpt[1], msgline);
 	}
     },
+    commandJoin: function(msgline, i, subscribe) {
+        var self = this;
+        if (i == msgline.length) {
+            alert("No room name specified");
+            return;
+        }
+        if (msgline.charAt(i+1) == "#") i++;
+        try {
+            var regex = new RegExp("^" + msgline.substring(i+1) + "$");
+        } catch (err) {
+            alert("Error in room regular expression");
+            return;
+        }
+        $.each(this.allRooms, function(j, room) {
+            var name = room.id;
+            if (name.match(regex)) {
+                if (subscribe) {
+                    if (!self.isSubscribed(name)) self.subscribe(name);
+                } else {
+                    if (self.isSubscribed(name)) self.unsubscribe(name);
+                }
+            }
+        });
+    },
+    commandMsg: function(msgline, i) {
+        if (i == msgline.length) {
+            alert("No destination specified");
+            return;
+        }
+        var j = msgline.indexOf(" ", i+1);
+        if (j == -1) return;
+        if (msgline.charAt(i+1) == "#") {
+            this.postMessage("room",
+                             msgline.substring(i+2, j),
+                             msgline.substring(j+1));
+        } else {
+            this.postMessage("client",
+                             msgline.substring(i+1, j),
+                             msgline.substring(j+1));
+        }
+    },
     parseCommand: function(msgline) {
         if (msgline.charAt(0) == "/") {
             var i = msgline.indexOf(" ");
             if (i == -1) i = msgline.length;
             var command = msgline.substring(1, i);
             switch (command) {
-            case "join":
-                if (i == -1) {
-                    alert("No room name specified");
-                    return;
-                }
-                if (msgline.charAt(i+1) == "#") i++;
-                this.toggleSubscription(msgline.substring(i+1));
-                return;
-            case "msg":
-                if (i == -1) {
-                    alert("No destination specified");
-                    return;
-                }
-                var j = msgline.indexOf(" ", i+1);
-                if (j == -1) return;
-                if (msgline.charAt(i+1) == "#") {
-                    this.postMessage("room",
-                                     msgline.substring(i+2, j),
-                                     msgline.substring(j+1));
-                } else {
-                    this.postMessage("client",
-                                     msgline.substring(i+1, j),
-                                     msgline.substring(j+1));
-                }
-                return;
+            case "join": this.commandJoin(msgline, i, true); return;
+            case "part": this.commandJoin(msgline, i, false); return;
+            case "msg":  this.commandMsg(msgline, i);  return;
             }
         }
         this.sendMessage(msgline);
@@ -234,6 +257,7 @@ var klatschclient = {
 	var self = this;
 	klatschbase.roomList(function(rooms) {
 		if (rooms && !rooms.error) {
+                    self.allRooms = rooms;
 		    var rd =
 			$(document.createElement("ul")).addClass("roomlist");
 		    for (var i=0; i<rooms.length; i++) {
