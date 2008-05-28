@@ -133,3 +133,6 @@ div.console input[type=text] {
 .console span.recipient span.room {
 	color: blue;
 }
+div.languageSelection {
+  float: right;
+}

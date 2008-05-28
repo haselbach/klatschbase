@@ -1,0 +1,12 @@
+{
+"form-login": "Login",
+"form-password": "Passwort",
+"form-new-account": "Neuer Account",
+"button-ok": "OK",
+"heading-rooms": "Die Räume",
+"heading-clients": "Die Leute",
+"heading-options": "Optionen",
+"option-echo-msg": "Nachrichten wiederholen",
+"option-create-room": "Erstelle Raum",
+"dialog-room-name": "Name des Raumes"
+}

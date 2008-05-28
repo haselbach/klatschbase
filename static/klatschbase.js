@@ -408,7 +408,8 @@ $(document).ready(function() {
         }
     });
     $("#createRoom").click(function() {
-        var roomName = prompt("Name of the room");
+        var roomName = prompt($.i18n("dialog_room_name"));
+        if (roomName == undefined) return;
         kb.makeRoom(kc.getAuth(), roomName, function(data) {
             if (data != null) {
                 if (data.error == null) {
@@ -431,6 +432,11 @@ $(document).ready(function() {
                               ? "\u2b07" : "\u2b06");
              })
              .text("\u2b06"));
+    $.loadI18NFile("klatschbase.i18n{0}.json", function() {
+    });
+    $("#languageList").change(function() {
+        $.loadI18NFile("klatschbase.i18n{0}.json", $.i18nLabel, this.value);
+    });
     $(".preload").hide();
     $(".login").show();
 });

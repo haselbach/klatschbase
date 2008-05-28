@@ -3,6 +3,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <script type="text/javascript" src="jquery.js"></script>
+    <script type="text/javascript" src="jquery.polly.js"></script>
     <script type="text/javascript" src="json2.js"></script>
     <script type="text/javascript" src="webtoolkit.base64.js"></script>
     <script type="text/javascript" src="rfc2047.js"></script>
@@ -12,6 +13,14 @@
     <title>Klatschbase</title>
   </head>
   <body>
+    <div class="languageSelection">
+      <form action="#">
+        <select name="languageList" id="languageList">
+          <option value="de">Deutsch</option>
+          <option value="en">English</option>
+        </select>
+      </form>
+    </div>
     <h1>Klatschbase</h1>
     <div class="preload">
       <p>
@@ -29,15 +38,15 @@
       <form action="#">
 	<table>
 	  <tr>
-            <td>Login:</td>
+            <td><span class="i18n-form-login">Login</span>:</td>
 	    <td><input type="text" id="login"/></td>
 	  </tr>
 	  <tr>
-	    <td>Password:</td>
+	    <td><span class="i18n-form-password">Password</span>:</td>
             <td><input type="password" id="password"/></td>
 	  </tr>
 	  <tr>
-	    <td>New Account:</td>
+	    <td><span class="i18n-form-new-account">New Account</span>:</td>
 	    <td><input type="checkbox" id="registerFlag"/></td>
 	  </tr>
           <tr>
@@ -83,7 +92,7 @@
       <div class="box rooms">
 	<h2>
 	  <span class="room">
-	    The rooms
+	    <span class="i18n-heading-rooms">The rooms</span>
 	  </span>
 	</h2>
 	<div class="content">
@@ -95,7 +104,7 @@
       <div class="box clients">
 	<h2>
 	  <span class="client">
-	    The clients
+	    <span class="i18n-heading-clients">The clients</span>
 	  </span>
 	</h2>
 	<div class="content">
@@ -105,7 +114,7 @@
 	</div>
       </div>
       <div class="box">
-	<h2>Options</h2>
+	<h2><span class="i18n-heading-options">Options</span></h2>
 	<div class="content">
 	  <form action="#">
 	    <table>
@@ -114,13 +123,15 @@
 		  <input id="echoMessage" type="checkbox" checked="checked"/>
 		</td>
 		<td>
-		  echo sent messages
+		  <span class="i18n-option-echo-msg">echo sent messages</span>
 		</td>
 	      </tr>
 	      <tr>
 		<td>&#x261E;</td>
 		<td>
-		  <a href="#" id="createRoom">Create Room</a>
+		  <a href="#" id="createRoom">
+                    <span class="i18n-option-create-room">Create Room</span>
+                  </a>
 		</td>
 	      </tr>
 	    </table>
