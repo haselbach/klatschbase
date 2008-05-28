@@ -31,11 +31,42 @@
                          success: extendFun, complete: complete});
         };
     };
+
+    var getLanguage = jQuery.i18nLang = function() {
+        return navigator.language ? navigator.language : navigator.userLanguage;
+    }
+
+    var languageMatch = jQuery.i18nLangMatch = function(lang, langs) {
+        var bestMatch;
+        var bestScore = 0;
+        var len = lang.length;
+        var langParts = lang.split(/[-_]/);
+        var partsLen = langParts.length;
+        for (var i=0; i<langs.length; i++) {
+            var curLang = langs[i];
+            if (curLang == lang) {
+                return lang;
+            }
+            var curLangParts = curLang.split(/[-_]/);
+            var j = 0;
+            var k = Math.min(langParts.length, partsLen);
+            while (j < k && curLangParts[j] == langParts[j]) {
+                j++;
+            }
+            if (j == partsLen) {
+                return curLang;
+            }
+            if (j > bestScore) {
+                bestScore = j;
+                bestMatch = curLang;
+            }
+        }
+        return bestMatch;
+    };
     
     jQuery.loadI18NFile = function(baseUrl, complete, lang) {
         if (lang == undefined) {
-            lang = navigator.language
-                ? navigator.language : navigator.userLanguage;
+            lang = getLanguage();
         }
         var langParts = lang.split(/[-_]/);
         i18n = {};

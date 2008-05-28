@@ -433,6 +433,7 @@ $(document).ready(function() {
              })
              .text("\u2b06"));
     $.loadI18NFile("klatschbase.i18n{0}.json", function() {
+        $("#languageList").val($.i18nLangMatch($.i18nLang(), ["de", "en"]));
     });
     $("#languageList").change(function() {
         $.loadI18NFile("klatschbase.i18n{0}.json", $.i18nLabel, this.value);
