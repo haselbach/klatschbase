@@ -1,5 +1,25 @@
-var utilities = {
-    intToString: function(i, n) {
+var klatschclient;
+
+(function() {
+    var refreshMessageInterval = 2;
+    var refreshListInterval = 180000;
+    var refreshMessageId, refreshClientListId, refreshRoomListId;
+    var allRooms = null;
+    var subscribedRooms = {};
+    var auth;
+    var kc = klatschclient = {};
+    var startkey;
+    var recipient;
+
+    var setAuth = kc.setAuth = function(loginId, password) {
+        auth = [loginId, password];
+    }
+
+    var getAuth = kc.getAuth = function() {
+        return auth;
+    }
+
+    var intToString = function(i, n) {
 	var s = "" + i;
 	var m = n - s.length;
 	var t = "";
@@ -7,8 +27,9 @@ var utilities = {
 	    t += "0";
 	}
 	return t + s;
-    },
-    createSlider: function(selector) {
+    };
+
+    var createSlider = kc.createSlider = function(selector) {
         var startHeight;
         var followSlider = function(e) {
 	    $("p.chat").height(startHeight + e.pageY);
@@ -22,40 +43,37 @@ var utilities = {
 	    $(document).unbind('mousemove', followSlider);
         });
     }
-};
 
-var klatschclient = {
-    refreshMessageInterval: 2,
-    refreshListInterval: 180000,
-    allRooms: null,
-    subscribedRooms: {},
-    getSubscribedRooms: function() {
+    var getSubscribedRooms = function() {
 	var rooms = [];
-	$.each(this.subscribedRooms, function(i,room) { rooms.push(room); });
+	$.each(subscribedRooms, function(i,room) { rooms.push(room); });
 	return rooms;
-    },
-    isSubscribed: function(name) {
-        return this.subscribedRooms[name] != undefined
-    },
-    subscribe: function(name) {
-        var self = this;
-        klatschbase.roomInfo(self.auth, name, function(data) {
+    };
+
+    var isSubscribed = function(name) {
+        return subscribedRooms[name] != undefined
+    };
+
+    var subscribe = function(name) {
+        klatschbase.roomInfo(auth, name, function(data) {
 	    if (data != null && !data.error) {
-		self.subscribedRooms[name] = data;
-		self.displayRoomList();
+		subscribedRooms[name] = data;
+		displayRoomList();
 	    }
 	});
-    },
-    unsubscribe: function(name) {
-        this.subscribedRooms[name] = undefined;
-	this.displayRoomList();
-    },
-    toggleSubscription: function(name) {
-        if (this.isSubscribed(name)) this.unsubscribe(name);
-        else this.subscribe(name);
-    },
-    postMessage: function(category, name, msgline) {
-        var self = this;
+    };
+
+    var unsubscribe = function(name) {
+        subscribedRooms[name] = undefined;
+	displayRoomList();
+    };
+
+    var toggleSubscription = function(name) {
+        if (isSubscribed(name)) unsubscribe(name);
+        else subscribe(name);
+    };
+
+    var postMessage = function(category, name, msgline) {
 	if (msgline == "") return;
         var msg = {msgtext: msgline};
         if (category == "client") {
@@ -65,19 +83,19 @@ var klatschclient = {
         } else {
             throw "Unknown sender category";
         }
-        klatschbase.postMessage(this.auth, msg, function (data) {
-                self.addOwnMessage(msgline, data);
-                self.refresh();
+        klatschbase.postMessage(auth, msg, function (data) {
+                addOwnMessage(msgline, data);
+                refresh();
             });
-    },
-    sendMessage: function(msgline) {
-	var rcpt = this.recipient;
-	if (rcpt) {
-            this.postMessage(rcpt[0], rcpt[1], msgline);
+    };
+
+    var sendMessage = function(msgline) {
+	if (recipient) {
+            postMessage(recipient[0], recipient[1], msgline);
 	}
-    },
-    commandJoin: function(msgline, i, subscribe) {
-        var self = this;
+    };
+
+    var commandJoin = function(msgline, i, isSubscribe) {
         if (i == msgline.length) {
             alert("No room name specified");
             return;
@@ -89,18 +107,16 @@ var klatschclient = {
             alert("Error in room regular expression");
             return;
         }
-        $.each(this.allRooms, function(j, room) {
+        var op = isSubscribe ? subscribe : unsubscribe;
+        $.each(allRooms, function(j, room) {
             var name = room.id;
             if (name.match(regex)) {
-                if (subscribe) {
-                    if (!self.isSubscribed(name)) self.subscribe(name);
-                } else {
-                    if (self.isSubscribed(name)) self.unsubscribe(name);
-                }
+                if (isSubscribed(name) !== isSubscribe) op(name);
             }
         });
-    },
-    commandMsg: function(msgline, i) {
+    };
+
+    var commandMsg = function(msgline, i) {
         if (i == msgline.length) {
             alert("No destination specified");
             return;
@@ -108,16 +124,17 @@ var klatschclient = {
         var j = msgline.indexOf(" ", i+1);
         if (j == -1) return;
         if (msgline.charAt(i+1) == "#") {
-            this.postMessage("room",
+            postMessage("room",
                              msgline.substring(i+2, j),
                              msgline.substring(j+1));
         } else {
-            this.postMessage("client",
+            postMessage("client",
                              msgline.substring(i+1, j),
                              msgline.substring(j+1));
         }
-    },
-    commandCd: function(msgline, i) {
+    };
+
+    var commandCd = function(msgline, i) {
         if (i == msgline.length) {
             alert("No destination specified");
             return;
@@ -129,28 +146,31 @@ var klatschclient = {
         } else {
             category = "client";
         }
-        this.changeRecipient(category, msgline.substring(i+1));
-    },
-    parseCommand: function(msgline) {
+        changeRecipient(category, msgline.substring(i+1));
+    };
+
+    var parseCommand = kc.parseCommand = function(msgline) {
         if (msgline.charAt(0) == "/") {
             var i = msgline.indexOf(" ");
             if (i == -1) i = msgline.length;
             var command = msgline.substring(1, i);
             switch (command) {
-            case "join": this.commandJoin(msgline, i, true); return;
-            case "part": this.commandJoin(msgline, i, false); return;
-            case "msg":  this.commandMsg(msgline, i);  return;
-            case "cd":   this.commandCd(msgline, i); return;
+            case "join": commandJoin(msgline, i, true); return;
+            case "part": commandJoin(msgline, i, false); return;
+            case "msg":  commandMsg(msgline, i);  return;
+            case "cd":   commandCd(msgline, i); return;
             }
         }
-        this.sendMessage(msgline);
-    },
-    scrollToBottom: function() {
+        sendMessage(msgline);
+    };
+
+    var scrollToBottom = function() {
         $("p.chat").each(function(id, p) {
                 p.scrollTop = p.scrollHeight;
             });
-    },
-    addOwnMessage: function(msg, data) {
+    };
+
+    var addOwnMessage = function(msg, data) {
 	if (document.getElementById('echoMessage').checked === false) {
 	    return;
 	}
@@ -162,39 +182,43 @@ var klatschclient = {
 	.append($(document.createElement("span")).addClass("message")
 		.text(msg));
 	$("p.chat").append(node);
-        this.scrollToBottom();
-    },
-    addMessage: function(node, msg) {
+        scrollToBottom();
+    };
+
+    var addMessage = function(node, msg) {
 	var time = msg.timestamp;
 	node.append($(document.createElement("span")).addClass("sender")
-		    .append(this.recipientLink("client", msg.sender)))
+		    .append(recipientLink("client", msg.sender)))
 	.prepend($(document.createElement("span")).addClass("timestamp")
-		 .text(utilities.intToString(time[2], 2) + ":"
-		       + utilities.intToString(time[1], 2) + ":"
-		       + utilities.intToString(time[0], 2)))
+		 .text(intToString(time[2], 2) + ":"
+		       + intToString(time[1], 2) + ":"
+		       + intToString(time[0], 2)))
 	.append($(document.createElement("span")).addClass("message")
 		.text(msg.text));
 	$("p.chat").append(node);
-    },
-    addPersonalMessage: function(msg) {
+    };
+
+    var addPersonalMessage = function(msg) {
 	var span = $(document.createElement("span")).addClass("personalEntry");
-	this.addMessage(span, msg);
-    },
-    addRoomMessage: function(roomId, msg) {
+	addMessage(span, msg);
+    };
+
+    var addRoomMessage = function(roomId, msg) {
 	var span = $(document.createElement("span")).addClass("roomEntry")
-	.append(this.recipientLink("room", roomId));
-	this.addMessage(span, msg);
-    },
-    startMessagePolling: function(loginId, password, startkey) {
-        var self = this;
-        this.startkey = startkey;
+	.append(recipientLink("room", roomId));
+	addMessage(span, msg);
+    };
+
+    var refresh;
+    var startMessagePolling = function(loginId, password, startkeyA) {
+        startkey = startkeyA;
         var scheduleNextMessagePoll = function() {
-            this.refreshMessageId =
-            setTimeout('klatschclient.refresh()',
-                       500 * Math.pow(self.refreshMessageInterval, 2));
+            refreshMessageId =
+            setTimeout(refresh,
+                       500 * Math.pow(refreshMessageInterval, 2));
         };
         var msgListFun = function(msgsList) {
-            clearTimeout(self.refreshMessageId);
+            clearTimeout(refreshMessageId);
             var count = 0;
             if (msgsList != null) {
                 if (msgsList.error) return;
@@ -205,128 +229,128 @@ var klatschclient = {
                             var nextStartkey = mlist[mlist.length - 1].id + 1;
                             if (msgs.key.category == "room") {
                                 var roomId = msgs.key.name;
-                                var room = self.subscribedRooms[roomId];
+                                var room = subscribedRooms[roomId];
                                 if (room) {
                                     room.startkey = nextStartkey;
                                     $.each(mlist, function(id, msg) {
                                             count++;
-                                            self.addRoomMessage(roomId, msg);
+                                            addRoomMessage(roomId, msg);
                                         });
                                 }
                             } else if (msgs.key.category == "client") {
-                                self.startkey = nextStartkey;
+                                startkeyA = nextStartkey;
                                 $.each(mlist, function(id, msg) {
                                         count++;
-                                        self.addPersonalMessage(msg);
+                                        addPersonalMessage(msg);
                                     });
                             }
-                            self.scrollToBottom();
+                            scrollToBottom();
                          }
                     });
             }
             if (count == 0) {
-                if (self.refreshMessageInterval < 20) {
-                    self.refreshMessageInterval++;
+                if (refreshMessageInterval < 20) {
+                    refreshMessageInterval++;
                 }
             } else if (count >= 2) {
-                if (self.refreshMessageInterval > 0) {
-                    self.refreshMessageInterval--;
+                if (refreshMessageInterval > 0) {
+                    refreshMessageInterval--;
                 }
             }
             scheduleNextMessagePoll();
         }
-        this.refresh = function() {
+        refresh = kc.refresh = function() {
             klatschbase.getMessagesList([loginId, password],
                                         [{category: "client",
                                           name: loginId,
-                                          startkey: self.startkey}]
-                                        .concat(self.getSubscribedRooms()),
+                                          startkey: startkeyA}]
+                                        .concat(getSubscribedRooms()),
                                         msgListFun, scheduleNextMessagePoll);
         };
-        this.refresh();
-    },
-    setupListeners: function(loginId, password, startkey) {
-	this.refreshClientListId =
-	setInterval('klatschclient.displayClientList()',
-		    this.refreshListInterval);
-	this.refreshRoomListId =
-	setInterval('klatschclient.displayRoomList()',
-		    this.refreshListInterval);
-	this.displayClientList();
-	this.displayRoomList();
-        this.startMessagePolling(loginId, password, startkey);
-    },
-    subscribeLink: function(roomId) {
-	var self = this;
+        refresh();
+    };
+
+    var setupListeners =
+    kc.setupListeners = function(loginId, password, startkey) {
+        refreshClientListId =
+            setInterval(displayClientList, refreshListInterval);
+	refreshRoomListId =
+	    setInterval(displayRoomList, refreshListInterval);
+	displayClientList();
+	displayRoomList();
+        startMessagePolling(loginId, password, startkey);
+    };
+
+    var subscribeLink = function(roomId) {
 	return $(document.createElement("a")).attr("href","#")
 	.click(function() {
-		self.toggleSubscription(roomId);
+		toggleSubscription(roomId);
 		$("#msgline").focus();
 		return false;
 	    })
-	.text(self.isSubscribed(roomId) ? "\u2611": "\u2610");
-    },
-    changeRecipient: function(category, id) {
+	.text(isSubscribed(roomId) ? "\u2611": "\u2610");
+    };
+
+    var changeRecipient = function(category, id) {
 	var rcptSpan =
 	    $(document.createElement("span")).addClass("recipient")
 	.append($(document.createElement("span")).addClass(category)
 		.text(id));
 	$("span.recipient").replaceWith(rcptSpan);
-	this.recipient = [category, id];
+	recipient = [category, id];
 	$("#msgline").focus();
-    },
-    recipientLink: function(category, id) {
-	var self = this;
+    };
+
+    var recipientLink = function(category, id) {
 	return $(document.createElement("a")).attr("href","#")
         .click(function() {
-            self.changeRecipient(category, id);
+            changeRecipient(category, id);
 	    return false;
 	})
 	.append($(document.createElement("span")).addClass(category)
 		.text(id));
-    },
-    displayRoomList: function() {
-	var self = this;
-	klatschbase.roomList(function(rooms) {
-		if (rooms && !rooms.error) {
-                    self.allRooms = rooms;
-		    var rd =
-			$(document.createElement("ul")).addClass("roomlist");
-		    for (var i=0; i<rooms.length; i++) {
-			var roomId = rooms[i].id;
-			rd.append($(document.createElement("li"))
-				  .append(self.subscribeLink(roomId))
-				  .append(" ")
-				  .append(self.recipientLink("room", roomId)));
-		    }
-		    $("ul.roomlist").replaceWith(rd);
-		}
-	    });
-    },
-    displayClientList: function() {
-	var self = this;
-	klatschbase.clientList(function(clients) {
-		if (clients && !clients.error) {
-		    var cd =
-		    $(document.createElement("ul")).addClass("clientlist");
-		    clients.sort(function(c1, c2) {
-			    return c2.pollActivity - c1.pollActivity;
-			});
-		    for (var i=0; i<clients.length; i++) {
-			var act = Math.ceil(clients[i].pollActivity / 15);
-			cd.append($(document.createElement("li"))
-				  .append($(document.createElement("div")).text(" ")
-					  .addClass("activity")
-					  .css({borderBottomWidth: act+"px",
-						borderTopWidth: (18-act)+"px"}))
-				  .append(self.recipientLink("client",
-							     clients[i].id)));
-		    }
-		    $("ul.clientlist").replaceWith(cd);
-		}
-	    });
-    }
-};
+    };
+
+    var displayRoomList = kc.displayRoomList = function() {
+        klatschbase.roomList(function(rooms) {
+                if (rooms && !rooms.error) {
+                    allRooms = rooms;
+                    var rd =
+                        $(document.createElement("ul")).addClass("roomlist");
+                    for (var i=0; i<rooms.length; i++) {
+                        var roomId = rooms[i].id;
+                        rd.append($(document.createElement("li"))
+                                  .append(subscribeLink(roomId))
+                                  .append(" ")
+                                  .append(recipientLink("room", roomId)));
+                    }
+                    $("ul.roomlist").replaceWith(rd);
+                }
+            });
+    };
+
+    var displayClientList = kc.displayClientList = function() {
+        klatschbase.clientList(function(clients) {
+            if (clients && !clients.error) {
+                var cd =
+                    $(document.createElement("ul")).addClass("clientlist");
+                clients.sort(function(c1, c2) {
+                    return c2.pollActivity - c1.pollActivity;
+                });
+                for (var i=0; i<clients.length; i++) {
+                    var act = Math.ceil(clients[i].pollActivity / 15);
+                    cd.append($(document.createElement("li"))
+                              .append($(document.createElement("div")).text(" ")
+                                      .addClass("activity")
+                                      .css({borderBottomWidth: act+"px",
+                                            borderTopWidth: (18-act)+"px"}))
+                              .append(recipientLink("client", clients[i].id)));
+                }
+                $("ul.clientlist").replaceWith(cd);
+            }
+        });
+    };
+})();
 
 $(document).ready(function() {
     var kc = klatschclient;
@@ -336,23 +360,24 @@ $(document).ready(function() {
         var password = document.getElementById('password').value;
         var register = document.getElementById('registerFlag')
         .checked === true;
-	var onLogin = function(data) {
-	    if (data) {
-		if (data.error) {
-		    alert("Error:" + data.description);
-		} else {
-		    loginId = data.id;
-                    setTimeout("klatschclient.setupListeners('"
-                               + loginId + "','" + password
-                               + "'," + data.startkey + ")", 500);
-		    $(".login").hide();
-		    $(".inchat").show();
-		    kc.auth = [loginId, password];
-		    $("#msgline").focus();
-		}
-	    } else {
-		alert("epic fail");
-	    }
+        var onLogin = function(data) {
+            if (data) {
+                if (data.error) {
+                    alert("Error:" + data.description);
+                } else {
+                    loginId = data.id;
+                    setTimeout(function() {
+                        kc.setupListeners(loginId, password, data.startkey);
+                    },
+                               500);
+                    $(".login").hide();
+                    $(".inchat").show();
+                    kc.setAuth(loginId, password);
+                    $("#msgline").focus();
+                }
+            } else {
+                alert("epic fail");
+            }
         }
         if (register) {
             kb.register(loginId,
@@ -364,48 +389,48 @@ $(document).ready(function() {
         return false;
     }
     $("#login").keypress(function(e) {
-	if (e.which == 13) {
-	    $("#password").focus();
-	}
+        if (e.which == 13) {
+            $("#password").focus();
+        }
     }).focus();
     $("#registerFlag").click(function() {
-	$("#password").focus();
+        $("#password").focus();
     });
     $("#password").keypress(function(e) {
-	if (e.which == 13) return doLogin();
+        if (e.which == 13) return doLogin();
     });
     $("#loginSubmit").click(doLogin);
     $("#msgline").keypress(function(e) {
-	if (e.which == 13) {
-	    kc.parseCommand(this.value);
-	    this.value = "";
-	    return false;
-	}
+        if (e.which == 13) {
+            kc.parseCommand(this.value);
+            this.value = "";
+            return false;
+        }
     });
     $("#createRoom").click(function() {
-	var roomName = prompt("Name of the room");
-	kb.makeRoom([loginId, password], roomName, function(data) {
-	    if (data != null) {
-		if (data.error == null) {
-		    kc.displayRoomList();
-		} else {
-		    alert("Error creating room " + roomName + ": "
-			  + data.description);
-		}
-	    } else {
-		alert("Unknown error creating room " + roomName);
-	    }
-	});
+        var roomName = prompt("Name of the room");
+        kb.makeRoom(kc.getAuth(), roomName, function(data) {
+            if (data != null) {
+                if (data.error == null) {
+                    kc.displayRoomList();
+                } else {
+                    alert("Error creating room " + roomName + ": "
+                          + data.description);
+                }
+            } else {
+                alert("Unknown error creating room " + roomName);
+            }
+        });
     });
-    utilities.createSlider("div.main div.slider");
+    kc.createSlider("div.main div.slider");
     $("div.box").prepend($(document.createElement("a"))
-	     .addClass("button hideOp").attr("href", "#")
-	     .click(function() {
-		 $("div.content", this.parentNode).slideToggle("fast");
-		 $(this).text($(this).text() == "\u2b06"
-			      ? "\u2b07" : "\u2b06");
-	     })
-	     .text("\u2b06"));
+             .addClass("button hideOp").attr("href", "#")
+             .click(function() {
+                 $("div.content", this.parentNode).slideToggle("fast");
+                 $(this).text($(this).text() == "\u2b06"
+                              ? "\u2b07" : "\u2b06");
+             })
+             .text("\u2b06"));
     $(".preload").hide();
     $(".login").show();
 });
