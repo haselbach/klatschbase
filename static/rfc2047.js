@@ -1,3 +1,5 @@
+var rfc2047 = {};
+(function() {
 /*
  * rfc2047.js 0.1
  * 
@@ -6,8 +8,8 @@
  * http://www.opensource.org/licenses/mit-license.php
  *
  */
-var rfc2047 = {
-    leftPad: function(str, len, padChar) {
+
+    var leftPad = function(str, len, padChar) {
 	if (padChar == null) padChar = ' ';
 	var n = len - str.length;
 	var left = "";
@@ -15,9 +17,11 @@ var rfc2047 = {
 	    left += padChar;
 	}
 	return left + str;
-    },
-    crlfsp: "\r\n ",
-    charMaxLen: function(charset) {
+    };
+
+    var crlfsp = "\r\n ";
+
+    var charMaxLen = function(charset) {
 	switch (charset) {
 	case "UTF-8":       return 4;
 	case "UTF-16":      return 4;
@@ -41,12 +45,14 @@ var rfc2047 = {
 	case "KOI8-R":      return 1;
 	default: throw 'charset ' + charset + ' unknown';
 	}
-    },
-    isDirectB: function(c) {
+    };
+
+    var isDirectB = function(c) {
 	return (48 <= c && c <= 57) || (65 <= c && c <= 90)
 	|| (97 <= c && c <= 122);
-    },
-    isSevenBitClean: function(str) {
+    };
+
+    var isSevenBitClean = function(str) {
 	var len = str.length;
 	for (var i = 0; i < len; i++) {
 	    if (str.charCodeAt(i) > 127) {
@@ -54,20 +60,21 @@ var rfc2047 = {
 	    }
 	    return true;
 	}
-    },
-    encode: function(str, charset, encoding) {
+    };
+
+    rfc2047.encode = function(str, charset, encoding) {
 	charset = (charset == null) ? "UTF-8" : charset.toUpperCase();
 	encoding = (encoding == null) ? "B" : encoding.toUpperCase();
 	var slen = str.length;
 	var wlen = Math.floor((75 - 8 - charset.length)
-			      / rfc2047.charMaxLen(charset));
+			      / charMaxLen(charset));
 	var output = "";
 	var bEnc = function() {
 	    var i = 0;
 	    var n = 0;
 	    while (i < slen) {
 		if (n != 0) {
-		    output += rfc2047.crlfsp;
+		    output += crlfsp;
 		}
 		var j = Math.min(slen, i + 4 * Math.ceil(wlen / 5));
 		var substr = str.substring(i, j);
@@ -83,14 +90,14 @@ var rfc2047 = {
 	    var len = 0;
 	    while ((i < slen) && (len < wlen)) {
 		var c = str.charCodeAt(i);
-		if (rfc2047.isDirectB(c)) {
+		if (isDirectB(c)) {
 		    output += str[i];
 		    len++;
 		} else {
 		    if (len + 3 >= wlen) {
 			break;
 		    }
-		    output += "=" + rfc2047.leftPad(c.toString(16), 2, "0");
+		    output += "=" + leftPad(c.toString(16), 2, "0");
 		    len += 3;
 		}
 		i++;
@@ -102,7 +109,7 @@ var rfc2047 = {
 	    var n = 0;
 	    while (i < slen) {
 		if (n != 0) {
-		    output += rfc2047.crlfsp;
+		    output += crlfsp;
 		}
 		output += "=?" + charset + "?" + encoding + "?";
 		i = qEncPart(i, 0);
@@ -115,11 +122,12 @@ var rfc2047 = {
 	default: throw "Unknown encoding " + encoding;
 	}
 	return output;
-    },
-    encodeIfNeeded: function(str, charset, encoding) {
-	if (rfc2047.isSevenBitClean(str)) {
+    };
+
+    rfc2047.encodeIfNeeded = function(str, charset, encoding) {
+	if (isSevenBitClean(str)) {
 	    return str;
 	}
 	return rfc2047.encode(str, charset, encoding);
-    }
-};
+    };
+})();
