@@ -1,23 +1,36 @@
 (function() {
     var i18n = {};
-    var format = function() {
-        var str = arguments[0];
+
+    var lineMatch = new RegExp("(.*){(\\d+)}$");
+
+    var formatDo = function(str, literal, replace) {
         var strParts = str.match(/.*?({\d+}|$)/g);
-        var lineMatch = new RegExp("(.*){(\\d+)}$");
-        var result = "";
         for (var i=0; i<strParts.length; i++) {
-            var s = lineMatch.exec(strParts[i]);
+            var curPart = strParts[i];
+            var s = lineMatch.exec(curPart);
             if (s) {
-                result += s[1];
-                var j = parseInt(s[2]) + 1;
-                result += j < arguments.length ? arguments[j] : s[2];
+                literal(s[1]);
+                replace(s[2]);
             } else {
-                result += strParts[i];
+                if (curPart) literal(curPart);
             }
-            
         }
+    };
+
+    var format = function(str) {
+        var result = "";
+        var args = arguments[1] instanceof Array ?
+            arguments[1] : [].splice.call(arguments, 1);
+        var len = args.length;
+        formatDo(
+            str,
+            function(s) { result += s; },
+            function(s) {
+                var i = parseInt(s);
+                result += i < len ? args[i] : "{" + s + "}";
+            });
         return result;
-    }
+    };
 
     var extendFun = function(data) {
         if (data != null) {
@@ -84,14 +97,13 @@
     };
 
     jQuery.getI18N = function(key) {
-        return i18n[key];
+        return format(i18n[key],[].splice.call(arguments, 1)) ;
     };
 
     jQuery.i18nLabel = function() {
         jQuery("span[class^=i18n-]").each(function() {
             var node = $(this);
             var value = i18n[node.attr("class").substr(5)];
-            //alert(format("{0} -> {1}", node.attr("class").substr(4), value));
             if (value != undefined) {
                 this.originalText = node.text();
                 node.text(value);
