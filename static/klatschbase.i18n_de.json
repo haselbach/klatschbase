@@ -8,5 +8,7 @@
 "heading-options": "Optionen",
 "option-echo-msg": "Nachrichten wiederholen",
 "option-create-room": "Erstelle Raum",
-"dialog-room-name": "Name des Raumes"
+"dialog-room-name": "Name des Raumes",
+"welcome-msg1": "Clicke einen Benutzer oder Raum an, um eine Nachricht zu senden. Clicke auf das \u2610 neben einen Raum um Dich für den Raum anzumelden. Clicke auf das \u2611 um Dich wieder abzumelden.",
+"welcome-msg2": "Mit {0} kannst Du auch direkt Nachrichten an Benutzer schicken. Mit {1} kannst Du direkt Nachrichten an Räume schicken.",
 }

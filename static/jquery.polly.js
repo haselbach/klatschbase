@@ -101,15 +101,46 @@
     };
 
     jQuery.i18nLabel = function() {
+        jQuery("span[class^=i18nx-]").each(function() {
+            var node = $(this);
+            var value = i18n[node.attr("class").substr(6)];
+            var args;
+            if (value != undefined) {
+                if (this.originalChildNodes == undefined) {
+                    this.originalNodes = this.childNodes;
+                }
+                if (this.i18nargs == undefined) {
+                    args = this.i18nargs = [];
+                    $("span.i18narg", this).each(function () {
+                        args.push(this);
+                    });
+                } else {
+                    args = this.i18nargs;
+                }
+                node.empty();
+                formatDo(
+                    value,
+                    function(s) {
+                        node.append(document.createTextNode(s));
+                    },
+                    function(s) {
+                        var i = parseInt(s);
+                        node.append($(args[i]).clone());
+                    });
+            }
+        });
         jQuery("span[class^=i18n-]").each(function() {
             var node = $(this);
             var value = i18n[node.attr("class").substr(5)];
             if (value != undefined) {
-                this.originalText = node.text();
+                if (this.originalText == undefined) {
+                    this.originalText = node.text();
+                }
                 node.text(value);
             } else if (this.originalText != undefined) {
                 node.text(this.originalText);
             }
         });
     };
+
 })();

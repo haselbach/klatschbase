@@ -8,5 +8,7 @@
 "heading-options": "Options",
 "option-echo-msg": "Echo sent messages",
 "option-create-room": "Create Room",
-"dialog-room-name": "Name of the room"
+"dialog-room-name": "Name of the room",
+"welcome-msg1": "Click on a client or room to send a message. Click on the \u2610 next to a room to subscribe. Click on the \u2611 next to a room to unsubscribe.",
+"welcome-msg2": "You can also send direct messages to other users by entering {0} and to rooms by entering {1}.",
 }
