@@ -11,4 +11,5 @@
 "dialog-room-name": "Name des Raumes",
 "welcome-msg1": "Clicke einen Benutzer oder Raum an, um eine Nachricht zu senden. Clicke auf das \u2610 neben einen Raum um Dich für den Raum anzumelden. Clicke auf das \u2611 um Dich wieder abzumelden.",
 "welcome-msg2": "Mit {0} kannst Du auch direkt Nachrichten an Benutzer schicken. Mit {1} kannst Du direkt Nachrichten an Räume schicken.",
+"welcome-msg3": "Du kannst Dich mit {0} für einen Raum anmelden und mit {1} wieder abmelden. Das #-Zeichen ist optional. Reguläre Ausdrücke werden unterstützt.",
 }

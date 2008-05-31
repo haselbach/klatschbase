@@ -11,4 +11,5 @@
 "dialog-room-name": "Name of the room",
 "welcome-msg1": "Click on a client or room to send a message. Click on the \u2610 next to a room to subscribe. Click on the \u2611 next to a room to unsubscribe.",
 "welcome-msg2": "You can also send direct messages to other users by entering {0} and to rooms by entering {1}.",
+"welcome-msg3": "You can subscribe to a room with {0} and unsubscribe with {1}.The # is optional. Regular expressions are supported.",
 }
