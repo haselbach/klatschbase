@@ -408,7 +408,7 @@ $(document).ready(function() {
         }
     });
     $("#createRoom").click(function() {
-        var roomName = prompt($.getI18N("dialog_room_name"));
+        var roomName = prompt($.getI18N("dialog-room-name"));
         if (roomName == undefined) return;
         kb.makeRoom(kc.getAuth(), roomName, function(data) {
             if (data != null) {
