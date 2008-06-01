@@ -438,6 +438,10 @@ $(document).ready(function() {
     $("#languageList").change(function() {
         $.loadI18NFile("klatschbase.i18n{0}.json", $.i18nLabel, this.value);
     });
-    $(".preload").hide();
-    $(".login").show();
+    var preloadFinished = function() {
+        $(".preload").hide();
+        $(".login").show();
+    };
+    setTimeout(preloadFinished, 1000);
+    $("a#forceLogin").click(preloadFinished);
 });

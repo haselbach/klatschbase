@@ -136,3 +136,7 @@ div.console input[type=text] {
 div.languageSelection {
   float: right;
 }
+a.button {
+  border: 1px solid black;
+  background-color: #CCC;
+}
