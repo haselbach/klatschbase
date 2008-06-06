@@ -1,3 +1,33 @@
+/**
+ *
+   Polly v0.1
+   A jQuery plugin for I18N.
+   Provides the following functions:
+   - loadI18NFile(url, complete, lang) loads I18N messages from url,
+     where url is a URL template. This template is a string that can contain
+     {0} which is replaces by the language key. E.g., if the language key
+     is en_CA and the url is http://example/foo{0}.json then the function
+     will try to load from the following URLs:
+      + http://example/foo.json
+      + http://example/foo_en.json
+      + http://example/foo_en_CA.json
+     The function complete is optional. It will be called after everything
+     is loaded.
+     The language can be specified via the parameter lang. If it is not
+     defined, the browser default language is used.
+   - getI18N(key, ...) translates the key and fills {0}, {1}, ... with
+     the according parameter using the currently loaded dictionary.
+     Example: if the key "foo" has the value "some {0} other", then the
+     call getI18N("foo", "or") will have the result "some or other".
+   - i18nLabel() translates every span that has a css class starting
+     with i18n- or i18nx-. Note that this must be the only css class or
+     strange things might happen. The rest of the css class is used as the
+     key. For i18nx you can define a template as i18n value where the
+     place holders ({0}, ...) are filled with the child nodes that have the
+     css class i18narg.
+                                                                             *
+                                                                            **/
+
 (function() {
     var i18n = {};
 

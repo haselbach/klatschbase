@@ -402,8 +402,9 @@ $(document).ready(function() {
     $("#loginSubmit").click(doLogin);
     $("#msgline").keypress(function(e) {
         if (e.which == 13) {
-            kc.parseCommand(this.value);
+            var msgline = this.value;
             this.value = "";
+            kc.parseCommand(msgline);
             return false;
         }
     });
