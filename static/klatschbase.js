@@ -1,7 +1,8 @@
 var klatschclient = (function() {
     var refreshMessageInterval = 2;
     var refreshListInterval = 180000;
-    var refreshMessageId, refreshClientListId, refreshRoomListId;
+    var refreshMessageId, refreshClientListId, refreshRoomListId,
+        storePropertiesId;
     var allRooms = null;
     var subscribedRooms = {};
     var auth;
@@ -56,7 +57,8 @@ var klatschclient = (function() {
     var subscribe = function(name) {
         kb.roomInfo(auth, name, function(data) {
 	    if (data != null && !data.error) {
-                if (startkeys.rooms && startkeys.rooms[name]) {
+                if (document.getElementById('loadOldMessages').checked
+                    && startkeys.rooms && startkeys.rooms[name]) {
                     data.startkey = startkeys.rooms[name];
                 }
 		subscribedRooms[name] = data;
@@ -290,7 +292,7 @@ var klatschclient = (function() {
             kb.getMessagesList([loginId, password],
                                [{category: "client",
                                  name: loginId,
-                                 startkey: startkey}]
+                                 startkey: startkeys.client}]
                                .concat(getSubscribedRooms()),
                                msgListFun, scheduleNextMessagePoll);
         };
@@ -311,6 +313,9 @@ var klatschclient = (function() {
             if (!startkeys.rooms) startkeys.rooms = {};
             startMessagePolling(loginId, password, startkey);
         });
+        storePropertiesId = setInterval(function() {
+            kb.putClientProperty(auth, auth[0], "$startkeys", startkeys);
+        }, 10*60*1000);
     };
 
     var subscribeLink = function(roomId) {
@@ -382,12 +387,16 @@ var klatschclient = (function() {
             }
         });
     };
+
+    var storePreferences = function() {
+        kb.putClientProperty(auth, auth[0], "$startkeys", startkeys);
+    };
     
     var logout = kc.logout = function() {
         clearTimeout(refreshMessageId);
         clearTimeout(refreshClientListId);
         clearTimeout(refreshRoomListId);
-        kb.putClientProperty(auth, auth[0], "$startkeys", startkeys);
+        storePreferences();
         auth = null;
     };
 
