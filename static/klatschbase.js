@@ -10,6 +10,14 @@ var klatschclient = (function() {
     var kb = klatschbase;
     var startkeys = {};
     var recipient;
+    var defaultOptions = {
+        echoMessage: true,
+        loadOldMessages: true,
+    };
+    var options = {};
+    $.extend(options, defaultOptions);
+
+    kc.getOptions = function() { return options; };
 
     var setAuth = kc.setAuth = function(loginId, password) {
         auth = [loginId, password];
@@ -50,6 +58,12 @@ var klatschclient = (function() {
 	return rooms;
     };
 
+    var getSubscribedRoomIds = function() {
+	var rooms = [];
+	$.each(subscribedRooms, function(i,room) { rooms.push(room.id); });
+	return rooms;
+    };
+
     var isSubscribed = function(name) {
         return subscribedRooms[name] != undefined
     };
@@ -57,7 +71,7 @@ var klatschclient = (function() {
     var subscribe = function(name) {
         kb.roomInfo(auth, name, function(data) {
 	    if (data != null && !data.error) {
-                if (document.getElementById('loadOldMessages').checked
+                if (options.loadOldMessages
                     && startkeys.rooms && startkeys.rooms[name]) {
                     data.startkey = startkeys.rooms[name];
                 }
@@ -202,7 +216,7 @@ var klatschclient = (function() {
     };
 
     var addOwnMessage = function(msg, data) {
-	if (document.getElementById('echoMessage').checked === false) {
+	if (!options.echoMessage) {
 	    return;
 	}
 	var node = $(document.createElement("span"))
@@ -299,6 +313,16 @@ var klatschclient = (function() {
         refresh();
     };
 
+    var storeProperty = function(key, value) {
+        kb.putClientProperty(auth, auth[0], key, value);
+    };
+
+    var storePreferences = function() {
+        storeProperty("$startkeys", startkeys);
+        storeProperty("$options", options);
+        storeProperty("$subscriptions", getSubscribedRoomIds());
+    };
+    
     var setupListeners =
     kc.setupListeners = function(loginId, password, startkey) {
         refreshClientListId =
@@ -313,9 +337,23 @@ var klatschclient = (function() {
             if (!startkeys.rooms) startkeys.rooms = {};
             startMessagePolling(loginId, password, startkey);
         });
-        storePropertiesId = setInterval(function() {
-            kb.putClientProperty(auth, auth[0], "$startkeys", startkeys);
-        }, 10*60*1000);
+        kb.getClientProperty(auth, auth[0], "$options", function(data) {
+            if (data && !data.error) {
+                $.extend(options, data);
+            };
+            $.each(defaultOptions, function(i, n) {
+                $(document.getElementById(i))
+                .click(function() { options[i] = this.checked; })
+                .each(function() { this.checked = options[i]; });
+            });
+            document.getElementById("echoMessage");
+        });
+        kb.getClientProperty(auth, auth[0], "$subscriptions", function(data) {
+            if (data && !data.error) {
+                $.each(data, function(i, name) { subscribe(name); });
+            }
+        });
+        storePropertiesId = setInterval(storePreferences, 10*60*1000);
     };
 
     var subscribeLink = function(roomId) {
@@ -388,14 +426,11 @@ var klatschclient = (function() {
         });
     };
 
-    var storePreferences = function() {
-        kb.putClientProperty(auth, auth[0], "$startkeys", startkeys);
-    };
-    
     var logout = kc.logout = function() {
         clearTimeout(refreshMessageId);
         clearTimeout(refreshClientListId);
         clearTimeout(refreshRoomListId);
+        clearTimeout(storePropertiesId);
         storePreferences();
         auth = null;
     };
