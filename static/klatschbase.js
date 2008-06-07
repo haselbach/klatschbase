@@ -1,14 +1,13 @@
-var klatschclient;
-
-(function() {
+var klatschclient = (function() {
     var refreshMessageInterval = 2;
     var refreshListInterval = 180000;
     var refreshMessageId, refreshClientListId, refreshRoomListId;
     var allRooms = null;
     var subscribedRooms = {};
     var auth;
-    var kc = klatschclient = {};
-    var startkey;
+    var kc = {};
+    var kb = klatschbase;
+    var startkeys = {};
     var recipient;
 
     var setAuth = kc.setAuth = function(loginId, password) {
@@ -55,8 +54,11 @@ var klatschclient;
     };
 
     var subscribe = function(name) {
-        klatschbase.roomInfo(auth, name, function(data) {
+        kb.roomInfo(auth, name, function(data) {
 	    if (data != null && !data.error) {
+                if (startkeys.rooms && startkeys.rooms[name]) {
+                    data.startkey = startkeys.rooms[name];
+                }
 		subscribedRooms[name] = data;
 		displayRoomList();
 	    }
@@ -64,7 +66,10 @@ var klatschclient;
     };
 
     var unsubscribe = function(name) {
-        subscribedRooms[name] = undefined;
+        if (subscribedRooms[name]) {
+            startkeys.rooms[name] = subscribedRooms[name].startkey;
+        }
+        subscribedRooms[name] = null;
 	displayRoomList();
     };
 
@@ -83,10 +88,10 @@ var klatschclient;
         } else {
             throw "Unknown sender category";
         }
-        klatschbase.postMessage(auth, msg, function (data) {
-                addOwnMessage(msgline, data);
-                refresh();
-            });
+        kb.postMessage(auth, msg, function (data) {
+            addOwnMessage(msgline, data);
+            refresh();
+        });
     };
 
     var sendMessage = function(msgline) {
@@ -149,16 +154,40 @@ var klatschclient;
         changeRecipient(category, msgline.substring(i+1));
     };
 
+    var commandStoreProperty = function(msgline, i) {
+        if (i == msgline.length) {
+            alert("No key specified");
+            return;
+        }
+        var value;
+        var j = msgline.indexOf(" ", i+1);
+        var key = msgline.substring(i+1, j);
+        alert("Setting " + key + " to " + msgline.substring(j+1));
+        if (j > i) {
+            try {
+                value = JSON.parse(msgline.substring(j+1));
+            }
+            catch (err) {
+                alert("Error parsing JSON value");
+                return;
+            }
+        }
+        kb.putClientProperty(auth, auth[0], key, value, function(data) {
+            addOwnMessage("Set value for key " + key, data);
+        })
+    };
+
     var parseCommand = kc.parseCommand = function(msgline) {
         if (msgline.charAt(0) == "/") {
             var i = msgline.indexOf(" ");
             if (i == -1) i = msgline.length;
             var command = msgline.substring(1, i);
             switch (command) {
-            case "join": commandJoin(msgline, i, true); return;
-            case "part": commandJoin(msgline, i, false); return;
-            case "msg":  commandMsg(msgline, i);  return;
-            case "cd":   commandCd(msgline, i); return;
+            case "join":  commandJoin(msgline, i, true); return;
+            case "part":  commandJoin(msgline, i, false); return;
+            case "msg":   commandMsg(msgline, i);  return;
+            case "cd":    commandCd(msgline, i); return;
+            case "store": commandStoreProperty(msgline, i); return;
             }
         }
         sendMessage(msgline);
@@ -199,7 +228,8 @@ var klatschclient;
     };
 
     var addPersonalMessage = function(msg) {
-	var span = $(document.createElement("span")).addClass("personalEntry");
+	var span = $(document.createElement("span"))
+        .addClass("personalEntry");
 	addMessage(span, msg);
     };
 
@@ -210,12 +240,12 @@ var klatschclient;
     };
 
     var refresh;
-    var startMessagePolling = function(loginId, password, startkeyA) {
-        startkey = startkeyA;
+    var startMessagePolling = function(loginId, password, startkey) {
+        startkeys.client = startkey;
         var scheduleNextMessagePoll = function() {
             refreshMessageId =
-            setTimeout(refresh,
-                       500 * Math.pow(refreshMessageInterval, 2));
+                setTimeout(refresh,
+                           500 * Math.pow(refreshMessageInterval, 2));
         };
         var msgListFun = function(msgsList) {
             clearTimeout(refreshMessageId);
@@ -223,49 +253,46 @@ var klatschclient;
             if (msgsList != null) {
                 if (msgsList.error) return;
                 $.each(msgsList, function(key, msgs) {
-                        if (msgs != null && msgs.messages != null
-                            && msgs.messages.length > 0) {
-                            var mlist = msgs.messages;
-                            var nextStartkey = mlist[mlist.length - 1].id + 1;
-                            if (msgs.key.category == "room") {
-                                var roomId = msgs.key.name;
-                                var room = subscribedRooms[roomId];
-                                if (room) {
-                                    room.startkey = nextStartkey;
-                                    $.each(mlist, function(id, msg) {
-                                            count++;
-                                            addRoomMessage(roomId, msg);
-                                        });
-                                }
-                            } else if (msgs.key.category == "client") {
-                                startkeyA = nextStartkey;
+                    if (msgs != null && msgs.messages != null
+                        && msgs.messages.length > 0) {
+                        var mlist = msgs.messages;
+                        var nextStartkey = mlist[mlist.length - 1].id + 1;
+                        if (msgs.key.category == "room") {
+                            var roomId = msgs.key.name;
+                            var room = subscribedRooms[roomId];
+                            if (room) {
+                                startkeys.rooms[roomId] = room.startkey
+                                    = nextStartkey;
                                 $.each(mlist, function(id, msg) {
-                                        count++;
-                                        addPersonalMessage(msg);
-                                    });
+                                    count++;
+                                    addRoomMessage(roomId, msg);
+                                });
                             }
-                            scrollToBottom();
-                         }
-                    });
+                        } else if (msgs.key.category == "client") {
+                            startkeys.client = nextStartkey;
+                            $.each(mlist, function(id, msg) {
+                                count++;
+                                addPersonalMessage(msg);
+                            });
+                        }
+                        scrollToBottom();
+                    }
+                });
             }
             if (count == 0) {
-                if (refreshMessageInterval < 20) {
-                    refreshMessageInterval++;
-                }
+                if (refreshMessageInterval < 20) refreshMessageInterval++;
             } else if (count >= 2) {
-                if (refreshMessageInterval > 0) {
-                    refreshMessageInterval--;
-                }
+                if (refreshMessageInterval > 0)  refreshMessageInterval--;
             }
             scheduleNextMessagePoll();
         }
         refresh = kc.refresh = function() {
-            klatschbase.getMessagesList([loginId, password],
-                                        [{category: "client",
-                                          name: loginId,
-                                          startkey: startkeyA}]
-                                        .concat(getSubscribedRooms()),
-                                        msgListFun, scheduleNextMessagePoll);
+            kb.getMessagesList([loginId, password],
+                               [{category: "client",
+                                 name: loginId,
+                                 startkey: startkey}]
+                               .concat(getSubscribedRooms()),
+                               msgListFun, scheduleNextMessagePoll);
         };
         refresh();
     };
@@ -278,7 +305,12 @@ var klatschclient;
 	    setInterval(displayRoomList, refreshListInterval);
 	displayClientList();
 	displayRoomList();
-        startMessagePolling(loginId, password, startkey);
+        startkeys.client = startkey;
+        kb.getClientProperty(auth, auth[0], "$startkeys", function(data) {
+            if (data && !data.error && data.client) startkeys = data;
+            if (!startkeys.rooms) startkeys.rooms = {};
+            startMessagePolling(loginId, password, startkey);
+        });
     };
 
     var subscribeLink = function(roomId) {
@@ -312,25 +344,25 @@ var klatschclient;
     };
 
     var displayRoomList = kc.displayRoomList = function() {
-        klatschbase.roomList(function(rooms) {
-                if (rooms && !rooms.error) {
-                    allRooms = rooms;
-                    var rd =
-                        $(document.createElement("ul")).addClass("roomlist");
-                    for (var i=0; i<rooms.length; i++) {
-                        var roomId = rooms[i].id;
-                        rd.append($(document.createElement("li"))
-                                  .append(subscribeLink(roomId))
-                                  .append(" ")
-                                  .append(recipientLink("room", roomId)));
-                    }
-                    $("ul.roomlist").replaceWith(rd);
+        kb.roomList(function(rooms) {
+            if (rooms && !rooms.error) {
+                allRooms = rooms;
+                var rd =
+                    $(document.createElement("ul")).addClass("roomlist");
+                for (var i=0; i<rooms.length; i++) {
+                    var roomId = rooms[i].id;
+                    rd.append($(document.createElement("li"))
+                              .append(subscribeLink(roomId))
+                              .append(" ")
+                              .append(recipientLink("room", roomId)));
                 }
-            });
+                $("ul.roomlist").replaceWith(rd);
+            }
+        });
     };
 
     var displayClientList = kc.displayClientList = function() {
-        klatschbase.clientList(function(clients) {
+        kb.clientList(function(clients) {
             if (clients && !clients.error) {
                 var cd =
                     $(document.createElement("ul")).addClass("clientlist");
@@ -350,6 +382,16 @@ var klatschclient;
             }
         });
     };
+    
+    var logout = kc.logout = function() {
+        clearTimeout(refreshMessageId);
+        clearTimeout(refreshClientListId);
+        clearTimeout(refreshRoomListId);
+        kb.putClientProperty(auth, auth[0], "$startkeys", startkeys);
+        auth = null;
+    };
+
+    return kc;
 })();
 
 $(document).ready(function() {
@@ -423,6 +465,11 @@ $(document).ready(function() {
                 alert("Unknown error creating room " + roomName);
             }
         });
+    });
+    $("#logout").click(function() {
+        kc.logout();
+        $(".login").show();
+        $(".inchat").hide();
     });
     kc.createSlider("div.main div.slider");
     $("div.box").prepend($(document.createElement("a"))

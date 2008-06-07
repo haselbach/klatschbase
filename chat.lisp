@@ -1,7 +1,6 @@
 ;;;
 ;;; Chat Server
 ;;;
-;;; This requires sbcl for threads and networking.
 
 (in-package :klatschbase)
 
@@ -43,7 +42,13 @@
       ((auth :user) (name :url-arg 1)))
      (delete-room
       "room" :delete
-      ((auth :user) (name :url-arg 1)))))
+      ((auth :user) (name :url-arg 1)))
+     (get-client-property
+      "client-property" :get
+      ((auth :user) (name :url-arg 1) (key :url-arg 2)))
+     (put-client-property
+      "client-property" :put
+      ((auth :user) (name :url-arg 1) (key :url-arg 2) (value :body)))))
 
 (defun create-client-js-dispatcher (base-path)
   (let ((client-api-string (client-remote-api (concatenate 'string
@@ -64,7 +69,7 @@
     (let ((op* (car operation)))
       (cond
 	((eq 'post-message op*)
-	 t)
+	 (< (length (second operation)) 500))
 	((eq 'login op*)
 	 t)
 	((eq 'get-message op*)
@@ -78,6 +83,9 @@
 	 t)
 	((eq 'delete-room op*)
 	 (not (null (find 'delete-room (allowed-client-operations user)))))
+        ((or (eq 'get-client-property op*) (eq 'put-client-property op*))
+         (destructuring-bind (name key) (cdr operation)
+           (string= name (first auth))))
 	(t (error "operation denied: ~A" operation))))))
 
 
@@ -110,7 +118,7 @@
 	 (check-access-right '(login) auth)
 	 (chat-object-dto (get-client-by-id chat-server (first auth))))
        (post-message (auth message)
-	 (check-access-right '(post-message) auth)
+	 (check-access-right `(post-message message) auth)
 	 (let* ((clientname (cdr (assoc :client  message)))
 		(roomname   (cdr (assoc :room    message)))
 		(msgtext    (cdr (assoc :msgtext message)))
@@ -166,7 +174,13 @@
 	 (create-room chat-server name))
        (delete-room (auth name)
 	 (check-access-right `(delete-room) auth)
-	 (remove-room chat-server name)))
+	 (remove-room chat-server name))
+       (get-client-property (auth name key)
+         (check-access-right `(get-client-property ,name ,key) auth)
+         (get-property (get-client-by-id chat-server name) key))
+       (put-client-property (auth name key value)
+         (check-access-right `(put-client-property ,name ,key) auth)
+         (put-property (get-client-by-id chat-server name) key value)))
     (remote-api (concatenate 'string base-path "ops/") chat-api)))
 
 (defun obtain-dispatch-table (server)

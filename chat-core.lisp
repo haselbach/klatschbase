@@ -1,5 +1,7 @@
 (in-package :klatschbase)
 
+(defparameter *max-age-in-s-default* (* 2 24 60 60))
+
 (defclass chat-message ()
   ((id        :accessor msgid        :initarg :id)
    (timestamp :accessor msgtimestamp :initarg :timestamp)
@@ -33,7 +35,7 @@
              :initform (portable-threads:make-condition-variable))))
 
 (defmethod add-msg ((store simple-msg-store) sender msgtext
-		    &key (max-age-in-s 600))
+		    &key (max-age-in-s *max-age-in-s-default*))
   (portable-threads:with-lock-held ((msg-mtx store))
     (let* ((msgs     (chat-messages store))
 	   (max-ts   (- (get-universal-time) max-age-in-s))
@@ -73,7 +75,8 @@
           (poll-msgs store startkey))
         msgs)))
 
-(defmethod clean-msg-store ((store simple-msg-store) &key (max-age-in-s 600))
+(defmethod clean-msg-store ((store simple-msg-store)
+                            &key (max-age-in-s *max-age-in-s-default*))
   (let* ((msgs     (chat-messages store))
 	 (max-ts   (- (get-universal-time) max-age-in-s))
 	 (old-msgs (loop
@@ -82,6 +85,25 @@
 		      :collect (msgid msg))))
     (portable-threads:with-lock-held ((msg-mtx store))
       (loop :for id :in old-msgs :do (remhash id msgs)))))
+
+
+(defclass chat-property-store () ())
+
+(defgeneric put-property (chat-property-store t t)
+  (:documentation "puts an element to the store"))
+
+(defgeneric get-property (chat-property-store t)
+  (:documentation "gets an element from the store"))
+
+(defclass simple-chat-property-store (chat-property-store)
+  ((store :initform (make-hash-table :test 'equal))))
+
+(defmethod put-property ((store simple-chat-property-store) key value)
+  (not (null (setf (gethash key (slot-value store 'store)) value))))
+
+(defmethod get-property ((store simple-chat-property-store) key)
+  (gethash key (slot-value store 'store)))
+
 
 (defclass chat-object ()
   ((name      :accessor name       :initarg :name)
@@ -93,7 +115,7 @@
   (:documentation "Representation of the chat client"))
   
 
-(defclass chat-client (chat-object)
+(defclass chat-client (chat-object simple-chat-property-store)
   ((password      :accessor client-password
 	          :initarg :password)
    (password-type :accessor client-password-type
@@ -162,8 +184,8 @@
   (list #\space #\tab #\newline #\linefeed #\page #\backspace #\return
 	#\/ #\$ #\% #\\ #\& #\^ #\" #\' #\: #\; #\? #\_ #\#))
 
-;; Checks whether the name is valid (i.e., contains only letters and numbers).
 (defun name-p (name)
+  "Checks whether the name is valid (i.e., contains only letters and numbers)."
   (and (>= (length name) 2)
        (<= (length name) 32)
        (not (find-if (lambda (c) (find c *disallowed-chars*)) name))))
