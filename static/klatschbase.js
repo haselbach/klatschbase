@@ -119,7 +119,7 @@ var klatschclient = (function() {
 
     var commandJoin = function(msgline, i, isSubscribe) {
         if (i == msgline.length) {
-            alert(i18n("error-no-room-name"));
+            alert($.i18n("error-no-room-name"));
             return;
         }
         if (msgline.charAt(i+1) == "#") i++;
@@ -503,7 +503,7 @@ $(document).ready(function() {
         });
     });
     $("#createRoom").click(function() {
-        var roomName = prompt($.getI18N("dialog-room-name"));
+        var roomName = prompt($.i18n("dialog-room-name"));
         if (roomName == undefined) return;
         kb.makeRoom(kc.getAuth(), roomName, function(data) {
             if (data != null) {

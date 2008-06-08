@@ -126,7 +126,7 @@
         loadFun();
     };
 
-    jQuery.getI18N = function(key) {
+    jQuery.getI18N = jQuery.i18n = function(key) {
         return format(i18n[key],[].splice.call(arguments, 1)) ;
     };
 
