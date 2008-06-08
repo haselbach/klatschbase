@@ -118,14 +118,14 @@ var klatschclient = (function() {
 
     var commandJoin = function(msgline, i, isSubscribe) {
         if (i == msgline.length) {
-            alert("No room name specified");
+            alert(i18n("error-no-room-name"));
             return;
         }
         if (msgline.charAt(i+1) == "#") i++;
         try {
             var regex = new RegExp("^" + msgline.substring(i+1) + "$");
         } catch (err) {
-            alert("Error in room regular expression");
+            alert($.i18n("error-room-regexp"));
             return;
         }
         var op = isSubscribe ? subscribe : unsubscribe;
@@ -139,7 +139,7 @@ var klatschclient = (function() {
 
     var commandMsg = function(msgline, i) {
         if (i == msgline.length) {
-            alert("No destination specified");
+            alert($.i18n("error-no-destination"));
             return;
         }
         var j = msgline.indexOf(" ", i+1);
@@ -157,7 +157,7 @@ var klatschclient = (function() {
 
     var commandCd = function(msgline, i) {
         if (i == msgline.length) {
-            alert("No destination specified");
+            alert($.i18n("error-no-destination"));
             return;
         }
         var category;
@@ -172,24 +172,23 @@ var klatschclient = (function() {
 
     var commandStoreProperty = function(msgline, i) {
         if (i == msgline.length) {
-            alert("No key specified");
+            alert($.i18n("error-no-key"));
             return;
         }
         var value;
         var j = msgline.indexOf(" ", i+1);
         var key = msgline.substring(i+1, j);
-        alert("Setting " + key + " to " + msgline.substring(j+1));
         if (j > i) {
             try {
                 value = JSON.parse(msgline.substring(j+1));
             }
             catch (err) {
-                alert("Error parsing JSON value");
+                alert($.i18n("error-parsing-json-value"));
                 return;
             }
         }
         kb.putClientProperty(auth, auth[0], key, value, function(data) {
-            addOwnMessage("Set value for key " + key, data);
+            addOwnMessage($.i18n("msg-set-value-for-key") + key, data);
         })
     };
 
@@ -494,6 +493,13 @@ $(document).ready(function() {
             return false;
         }
     });
+    $("#msgSubmit").click(function() {
+        $("#msgarea").each(function() {
+            var msgline = this.value;
+            this.value = "";
+            kc.parseCommand(msgline);
+        });
+    });
     $("#createRoom").click(function() {
         var roomName = prompt($.getI18N("dialog-room-name"));
         if (roomName == undefined) return;
@@ -529,6 +535,18 @@ $(document).ready(function() {
     });
     $("#languageList").change(function() {
         $.loadI18NFile("klatschbase.i18n{0}.json", $.i18nLabel, this.value);
+    });
+    $("#showMsgarea").click(function() {
+        $(this).hide();
+        $("#msgline").hide();
+        $("#msgarea").parent().show();
+        $("#hideMsgarea").show();
+    });
+    $("#hideMsgarea").click(function() {
+        $(this).hide();
+        $("#msgline").show();
+        $("#msgarea").parent().hide();
+        $("#showMsgarea").show();
     });
     var preloadFinished = function() {
         $(".preload").hide();

@@ -1,137 +1,144 @@
 body {
-	background-color: #BBBBFF;
+  background-color: #BBBBFF;
 }
 a {
-	color: inherit;
-	text-decoration: none;
+  color: inherit;
+  text-decoration: none;
 }
 h2 {
-	margin: 0px;
+  margin: 0px;
 }
-input {
-	border: 1px solid black;
+input, textarea {
+  vertical-align: top;
+  border: 1px solid black;
 }
 div.slider {
-	text-align: center;
-	padding: 0px 0px 5px 0px;
-	margin: 4px 0px;
-	line-height: 8px;
-	cursor: ns-resize;
-	background-color: #BBC;
+  text-align: center;
+  padding: 0px 0px 5px 0px;
+  margin: 4px 0px;
+  line-height: 8px;
+  cursor: ns-resize;
+  background-color: #BBC;
 }
 div.main {
-	float: right;
-	width: 85%;
-	padding-right: 1%;
+  float: right;
+  width: 85%;
+  padding-right: 1%;
 }
 .login, .inchat {
-	display: none;
+  display: none;
 }
 p.chat {
-	margin: 0px;
-	height: 400px;
-	overflow: auto;
-	border: 1px solid black;
-	background-color: #FAF5E0;
+  margin: 0px;
+  height: 400px;
+  overflow: auto;
+  border: 1px solid black;
+  background-color: #FAF5E0;
 }
 p.chat span.warnEntry,
 p.chat span.successEntry,
 p.chat span.personalEntry,
 p.chat span.roomEntry {
-	border: 1px dashed black;
-	background-color: white;
-	display: block;
-	margin: 2px;
-	padding: 2px;
+  border: 1px dashed black;
+  background-color: white;
+  display: block;
+  margin: 2px;
+  padding: 2px;
 }
 p.chat span.warnEntry {
-	border-color: red;
+  border-color: red;
 }
 p.chat span.successEntry {
-	border-color: blue;
+  border-color: blue;
 }
 p.chat span.successEntry span.info {
-	font-weight: bold;
+  font-weight: bold;
 }
 p.chat span.warnEntry span.info {
-	font-weight: bold;
-	color: red;
+  font-weight: bold;
+  color: red;
+}
+p.chat span.message {
+  white-space: pre;
 }
 p.chat span.sender {
-	font-weight: bold;
+  font-weight: bold;
 }
 ul.roomlist span.room,
 p.chat span.room {
-	font-weight: bold;
-	color: blue;
+  font-weight: bold;
+  color: blue;
 }
 p.chat span.sender:before,
 p.chat span.room:before {
-	content: " (";
+  content: " (";
 }
 p.chat span.sender:after,
 p.chat span.room:after {
-	content: ") ";
+  content: ") ";
 }
 p.chat span.timestamp {
-       color: #555;
-       font-style: italic;
+  color: #555;
+  font-style: italic;
 }
 p.chat span.commandhint {
-       color: #555;
-       font-family: sans-serif;
+  color: #555;
+  font-family: sans-serif;
 }
 div.menu {
-	width: 13%;
+  width: 13%;
 }
 div.menu h2 {
-	background-color: #999;
-	padding: 4px;
-	font-size: 8pt;
+  background-color: #999;
+  padding: 4px;
+  font-size: 8pt;
 }
 div.box {
-	border: 1px solid black;
-	margin: 2px;
-	background-color: #CCCCFF;
+  border: 1px solid black;
+  margin: 2px;
+  background-color: #CCCCFF;
 }
 div.box div.content {
-	overflow: auto;
-	height: 180px;
+  overflow: auto;
+  height: 180px;
 }
 div.box div.content ul {
-	margin: 4px 0;
-	padding-left: 10px;
-	list-style: none;
+  margin: 4px 0;
+  padding-left: 10px;
+  list-style: none;
 }
 div.box a.button {
-	float: right;
+  float: right;
 }
 div.activity {
-	float: left;
-	width: 8px;
-	height: 0px;
-	border-style:solid;
-	border-width:0px;
-	border-top-color: #BBB;
-	border-bottom-color: #5F5;
-        margin-right: 10px;
+  float: left;
+  width: 8px;
+  height: 0px;
+  border-style:solid;
+  border-width:0px;
+  border-top-color: #BBB;
+  border-bottom-color: #5F5;
+  margin-right: 10px;
 }
 div.console {
-	border: 1px solid black;
-	padding: 4px;
-	background-color: #CCCCFF;
-	margin: 0 2%;
+  border: 1px solid black;
+  padding: 4px;
+  background-color: #CCCCFF;
+  margin: 0 2%;
 }
-div.console input[type=text] {
-	width: 80%;
+div.console input[type=text], div.console textarea {
+  width: 80%;
 }
-.console span.recipient {
-	width: 10%;
-	float: left;
-	display: block;
+div.console span.recipient {
+  width: 10%;
+  float: left;
+  display: block;
 }
-.console span.recipient span.room {
-	color: blue;
+div.console span.recipient span.room {
+  color: blue;
+}
+div.console div.buttons {
+  float: right;
 }
 div.languageSelection {
   float: right;
