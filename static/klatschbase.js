@@ -16,8 +16,9 @@ var klatschclient = (function() {
     };
     var options = {};
     $.extend(options, defaultOptions);
+    var focusMsgInput;
 
-    kc.getOptions = function() { return options; };
+    kc.setFocusMsgInput = function(f) { focusMsgInput = f; };
 
     var setAuth = kc.setAuth = function(loginId, password) {
         auth = [loginId, password];
@@ -358,10 +359,10 @@ var klatschclient = (function() {
     var subscribeLink = function(roomId) {
 	return $(document.createElement("a")).attr("href","#")
 	.click(function() {
-		toggleSubscription(roomId);
-		$("#msgline").focus();
-		return false;
-	    })
+	    toggleSubscription(roomId);
+            focusMsgInput();
+	    return false;
+	})
 	.text(isSubscribed(roomId) ? "\u2611": "\u2610");
     };
 
@@ -372,7 +373,7 @@ var klatschclient = (function() {
 		.text(id));
 	$("span.recipient").replaceWith(rcptSpan);
 	recipient = [category, id];
-	$("#msgline").focus();
+        focusMsgInput();
     };
 
     var recipientLink = function(category, id) {
@@ -440,6 +441,7 @@ var klatschclient = (function() {
 $(document).ready(function() {
     var kc = klatschclient;
     var kb = klatschbase;
+    var msgInputLine = true;
     var doLogin = function() {
         var loginId = document.getElementById('login').value;
         var password = document.getElementById('password').value;
@@ -494,7 +496,7 @@ $(document).ready(function() {
         }
     });
     $("#msgSubmit").click(function() {
-        $("#msgarea").each(function() {
+        $("#msgarea").focus().each(function() {
             var msgline = this.value;
             this.value = "";
             kc.parseCommand(msgline);
@@ -537,16 +539,23 @@ $(document).ready(function() {
         $.loadI18NFile("klatschbase.i18n{0}.json", $.i18nLabel, this.value);
     });
     $("#showMsgarea").click(function() {
+        msgInputLine = false;
         $(this).hide();
         $("#msgline").hide();
         $("#msgarea").parent().show();
+        $("#msgarea").focus();
         $("#hideMsgarea").show();
     });
     $("#hideMsgarea").click(function() {
+        msgInputLine = true;
         $(this).hide();
-        $("#msgline").show();
+        $("#msgline").show().focus();
         $("#msgarea").parent().hide();
         $("#showMsgarea").show();
+    });
+    kc.setFocusMsgInput(function() {
+        if (msgInputLine) $("#msgline").focus();
+        else $("#msgarea").focus();
     });
     var preloadFinished = function() {
         $(".preload").hide();
