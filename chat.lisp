@@ -195,12 +195,14 @@
 		      hunchentoot-server
 		      chat-server
 		      (base-path "/klatschbase/")
-		      static-files-path)
+		      static-files-path
+                      save-file save-period)
   (let* ((server         (if (null hunchentoot-server)
 			      (start-server :address "127.0.0.1" :port 4242)
 			      hunchentoot-server))
 	 (chat-server*   (if (null chat-server)
-			     (make-instance 'chat-server)
+			     (make-instance 'chat-server
+                                            :save-file save-file :save-period save-period)
 			     chat-server))
 	 (dispatch-table (obtain-dispatch-table server)))
     (unless (null static-files-path)

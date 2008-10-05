@@ -23,6 +23,8 @@
 
 (defgeneric clean-msg-store (msg-store &optional &key max-age-in-s))
 
+(defgeneric msg-store-dto (msg-store))
+
 
 (defclass simple-msg-store (msg-store)
   ((msg-mtx  :accessor msg-mtx
@@ -33,6 +35,20 @@
 	     :initform (make-hash-table))
    (trigger  :accessor msg-trigger
              :initform (portable-threads:make-condition-variable))))
+
+(defmethod initialize-instance :after ((store msg-store) &key (seq 0) messages)
+  (setf (storeseq store) seq)
+  (loop
+     :with msgs-ht = (chat-messages store)
+     :for msg :in messages
+     :for (sec min hour date month year day daylight-p zone)= (cdr (assoc 'timestamp msg))
+     :for id        = (cdr (assoc 'id msg))
+     :for timestamp = (encode-universal-time sec min hour date month year zone)
+     :for chat-msg  = (make-instance 'chat-message
+                                     :id id :timestamp timestamp
+                                     :text (cdr (assoc 'text msg))
+                                     :sender (cdr (assoc 'sender msg)))
+     :do (setf (gethash id msgs-ht) chat-msg)))
 
 (defmethod add-msg ((store simple-msg-store) sender msgtext
 		    &key (max-age-in-s *max-age-in-s-default*))
@@ -86,6 +102,13 @@
     (portable-threads:with-lock-held ((msg-mtx store))
       (loop :for id :in old-msgs :do (remhash id msgs)))))
 
+(defmethod msg-store-dto ((store simple-msg-store))
+  `(message-store
+    (seq      ,(storeseq store))
+    (messages ,@(loop
+                   :for msg :being :the :hash-values :in (chat-messages store)
+                   :collect (chat-message-dto msg)))))
+
 
 (defclass chat-property-store () ())
 
@@ -109,10 +132,11 @@
   ((name      :accessor name       :initarg :name)
    (server    :accessor server     :initarg :server)
    (messages  :accessor chatmsgs
-	      :initform (make-instance 'simple-msg-store))
+	      :initform (make-instance 'simple-msg-store)
+              :initarg  :messages)
    (last-poll :accessor last-poll
 	      :initform nil))
-  (:documentation "Representation of the chat client"))
+  (:documentation "Representation of a chat object (e.g., chat client or room)"))
   
 
 (defclass chat-client (chat-object simple-chat-property-store)
@@ -167,6 +191,8 @@
 (defgeneric poll-activity (chat-object)
   (:documentation "Determines the activity regarding the chat object's polling history. The activity is an integer in the range 0 to 255 where 0 means no activity and 255 means full activity"))
 
+(defgeneric register-room (chat-server chat-room))
+
 (defgeneric create-room (chat-server t))
 
 (defgeneric remove-room (chat-server t))
@@ -178,6 +204,8 @@
 (defgeneric chat-object-dto (chat-object))
 
 (defgeneric authenticate-client (chat-server t t))
+
+(defgeneric save-chat-server (chat-server file-name))
 
 
 (defparameter *disallowed-chars*
@@ -216,19 +244,23 @@
     (remhash (name client) (clients (server client)))))
 
 (defmethod create-room ((server chat-server) name)
-  (if (name-p name)
-      (portable-threads:with-lock-held ((rooms-mtx server))
-	(let ((rooms (rooms server)))
-	  (let ((r (gethash name rooms)))
-	    (if (null r)
-		(progn
-		  (let ((r* (make-instance 'chat-room :name name)))
-		    (setf (gethash name rooms) r*)
-		    `((id . ,name)
-		      (created . t))))
-		`((id . ,name)
-		  (created . nil))))))
-      (error "room already exists")))
+  (register-room server (make-instance 'chat-room :name name)))
+
+(defmethod register-room ((server chat-server) (room chat-room))
+  (let ((name (name room)))
+    (if (name-p name)
+        (portable-threads:with-lock-held ((rooms-mtx server))
+          (let ((rooms (rooms server)))
+            (let ((r (gethash name rooms)))
+              (if (null r)
+                  (progn
+                    (setf (gethash name rooms) room)
+                    `((id . ,name)
+                      (created . t)))
+                  `((id . ,name)
+                    (created . nil))))))
+        (error "room name is malformed"))))
+
 
 (defmethod remove-room ((server chat-server) name)
   (portable-threads:with-lock-held ((rooms-mtx server))
@@ -323,3 +355,84 @@
 		 nil))
 	    (t
 	     (error "unknown password type")))))))
+
+(defmethod print-object ((client chat-client) stream)
+  (write `(client
+           (name               ,(name client))
+           (password           ,(client-password-type client) ,(client-password client))
+           (allowed-operations ,@(allowed-client-operations client))
+           (properties         ,@(loop
+                                    :for key :being :the :hash-keys :in (slot-value client 'store)
+                                    :using (hash-value value)
+                                    :collect (cons key value)))
+           ,(msg-store-dto (chatmsgs client)))
+         :stream stream))
+
+(defmethod print-object ((room chat-room) stream)
+  (write `(room
+           (name ,(name room))
+           ,(msg-store-dto (chatmsgs room)))
+         :stream stream))
+
+(defmethod save-chat-server ((server chat-server) file-name)
+  (with-open-file (stream file-name :direction :output :if-exists :supersede)
+    (loop
+       :for client :being :the :hash-values :in (clients server)
+       :do (format stream "~S~%" client))
+    (loop
+       :for room :being :the :hash-values :in (rooms server)
+       :do (format stream "~S~%" room))))
+
+
+(defun process-server-spec (server spec-stream)
+  (labels
+      ((spec-props (store props)
+         (loop
+            :for (key . value) :in props
+            :do (put-property store key value)))
+       (spec-client (params)
+         (let* ((name     (second (assoc 'name params)))
+                (pwd      (cdr (assoc 'password params)))
+                (props    (cdr (assoc 'properties params)))
+                (msgs     (cdr (assoc 'message-store params)))
+                (msgstore (make-instance 'simple-msg-store
+                                         :seq      (second (assoc 'seq msgs))
+                                         :messages (cdr (assoc 'messags msgs))))
+                (client   (make-instance 'chat-client
+                                         :name          name
+                                         :server        server
+                                         :password-type (first pwd)
+                                         :password      (second pwd)
+                                         :messages      msgstore)))
+           (spec-props client props)
+           (register-client server client)))
+       (spec-room (params)
+         (let* ((name     (second (assoc 'name params)))
+                (msgs     (cdr (assoc 'message-store params)))
+                (msgstore (make-instance 'simple-msg-store
+                                         :seq      (second (assoc 'seq msgs))
+                                         :messages (cdr (assoc 'messags msgs))))
+                (room     (make-instance 'chat-room
+                                         :name          name
+                                         :server        server
+                                         :messages      msgstore)))
+           (register-room server room)))
+       (spec-stmt (stmt params)
+         (case stmt
+           (client (spec-client params))
+           (room   (spec-room params)))))
+    (loop
+       :for stmt = (read spec-stream nil)
+       :if (null stmt) :do (return)
+       :do (spec-stmt (car stmt) (cdr stmt)))))
+
+(defmethod initialize-instance :after ((server chat-server) &key save-file save-period)
+  (unless (null save-file)
+    (with-open-file (stream save-file :if-does-not-exist nil)
+      (unless (null stream)
+        (process-server-spec server stream)))
+    (unless (null save-period)
+      (portable-threads:spawn-periodic-function
+       (lambda ()
+         (save-chat-server server save-file))
+       save-period :name 'save-server-job))))
