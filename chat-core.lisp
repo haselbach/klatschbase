@@ -259,7 +259,7 @@
                       (created . t)))
                   `((id . ,name)
                     (created . nil))))))
-        (error "room name is malformed"))))
+        (error "room name ~S is malformed" name))))
 
 
 (defmethod remove-room ((server chat-server) name)
@@ -376,12 +376,13 @@
 
 (defmethod save-chat-server ((server chat-server) file-name)
   (with-open-file (stream file-name :direction :output :if-exists :supersede)
-    (loop
-       :for client :being :the :hash-values :in (clients server)
-       :do (format stream "~S~%" client))
-    (loop
-       :for room :being :the :hash-values :in (rooms server)
-       :do (format stream "~S~%" room))))
+    (let ((*package* (find-package :klatschbase)))
+      (loop
+         :for client :being :the :hash-values :in (clients server)
+         :do (format stream "~S~%" client))
+      (loop
+         :for room :being :the :hash-values :in (rooms server)
+         :do (format stream "~S~%" room)))))
 
 
 (defun process-server-spec (server spec-stream)
@@ -421,10 +422,11 @@
          (case stmt
            (client (spec-client params))
            (room   (spec-room params)))))
-    (loop
-       :for stmt = (read spec-stream nil)
-       :if (null stmt) :do (return)
-       :do (spec-stmt (car stmt) (cdr stmt)))))
+    (let ((*package* (find-package :klatschbase)))
+      (loop
+         :for stmt = (read spec-stream nil)
+         :if (null stmt) :do (return)
+         :do (spec-stmt (car stmt) (cdr stmt))))))
 
 (defmethod initialize-instance :after ((server chat-server) &key save-file save-period)
   (unless (null save-file)
