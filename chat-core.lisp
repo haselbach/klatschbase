@@ -13,13 +13,13 @@
 (defclass msg-store ()
   ())
 
-(defgeneric add-msg (msg-store t t &optional &key))
+(defgeneric add-msg (msg-store sender text &optional &key))
 
-(defgeneric get-msg (mst-store t))
+(defgeneric get-msg (mst-store key))
 
-(defgeneric poll-msgs (msg-store t))
+(defgeneric poll-msgs (msg-store start-key))
 
-(defgeneric poll-msgs-wait (msg-store t t))
+(defgeneric poll-msgs-wait (msg-store start-key timeout))
 
 (defgeneric clean-msg-store (msg-store &optional &key max-age-in-s))
 
@@ -112,10 +112,10 @@
 
 (defclass chat-property-store () ())
 
-(defgeneric put-property (chat-property-store t t)
+(defgeneric put-property (chat-property-store key value)
   (:documentation "puts an element to the store"))
 
-(defgeneric get-property (chat-property-store t)
+(defgeneric get-property (chat-property-store key)
   (:documentation "gets an element from the store"))
 
 (defclass simple-chat-property-store (chat-property-store)
@@ -173,29 +173,29 @@
 (defgeneric send-message (chat-object chat-message)
   (:documentation "Sends a message to a chat-object"))
 
-(defgeneric client-message (chat-client chat-object t)
-  (:documentation "(client-message client destination msg) sends a client message msg to the destination denoted by destination."))
+(defgeneric client-message (chat-client chat-object msg)
+  (:documentation "Sends a client message msg to the destination denoted by destination."))
 
-(defgeneric get-client-by-id (chat-server t)
+(defgeneric get-client-by-id (chat-server client-id)
   (:documentation "Gets a registered client by the given id"))
 
-(defgeneric get-room-by-id (chat-server t)
+(defgeneric get-room-by-id (chat-server room-id)
   (:documentation "Gets a room by the given id"))
 
-(defgeneric get-chat-message (chat-object t))
+(defgeneric get-chat-message (chat-object key))
 
-(defgeneric poll-chat-messages (chat-object t))
+(defgeneric poll-chat-messages (chat-object start-key))
 
-(defgeneric poll-chat-messages-wait (chat-object t t))
+(defgeneric poll-chat-messages-wait (chat-object start-key timeout))
 
 (defgeneric poll-activity (chat-object)
   (:documentation "Determines the activity regarding the chat object's polling history. The activity is an integer in the range 0 to 255 where 0 means no activity and 255 means full activity"))
 
 (defgeneric register-room (chat-server chat-room))
 
-(defgeneric create-room (chat-server t))
+(defgeneric create-room (chat-server name))
 
-(defgeneric remove-room (chat-server t))
+(defgeneric remove-room (chat-server name))
 
 (defgeneric list-rooms (chat-server))
 
@@ -203,7 +203,7 @@
 
 (defgeneric chat-object-dto (chat-object))
 
-(defgeneric authenticate-client (chat-server t t))
+(defgeneric authenticate-client (chat-server name password))
 
 (defgeneric save-chat-server (chat-server file-name))
 
